@@ -72,16 +72,56 @@ user thread와 kernel thread의 관계가 정의되는 방법 중 일반적인 3
 ### 4.4.1 Pthreads
  Pthreads라고만 하면 POSIX standard (IEEE 1003.1c)를 따르는 specification이다. 여러 OS designer들은 이 specification을 따라 implementation되어 있다.
 
+A separate thread is created with the pthread create() function call.
+At this point, the program has two threads: the initial (or parent) thread in main() and the summation (or child) thread performing the summation operation in the runner() function. This program follows the fork-join strategy described earlier.
+
+/* get the default attributes */
+pthread attr init(&attr);
+/* create the thread */
+pthread create(&tid,&attr,runner,argv[1]);
+/* wait for the thread to exit */
+pthread join(tid,NULL);
+
 ### 4.4.2 Windows Threads
+The technique for creating threads using theWindows thread library is similar to the Pthreads technique in several ways.
+진짜 거의 다를게 없다.
+여러 스레드를 실행시키고, fork-join 전략으로 기다리는 경우라면 아래와 같다.
+In situations that require waiting for multiple threads to complete, the WaitForMultipleObjects() function is used. This function is passed four parameters:
+1. The number of objects to wait for
+2. A pointer to the array of objects
+3. A flag indicating whether all objects have been signaled
+4. A timeout duration (or INFINITE)
 
 ### 4.4.3 Java Threads
-
+모든 자바 프로그램은 최소 스레드 하나를 main() method로 JVM에서 사용한다. 그 외에 스레드 생성하는 방법이 두가지가 있다.
+1. Thread 클래스를 상속 받아서 run() method를 override하거나
+2. (일반적으로) Runnable interface를 구현한 클래스를 사용하거나
+Creating a Thread object does not specifically create the new thread; rather, the start() method creates the new thread. Calling the start() method for the new object does two things:
+1. It allocates memory and initializes a new thread in the JVM.
+2. It calls the run() method, making the thread eligible to be run by the JVM.
+(Note again that we never call the run() method directly. Rather, we call the start() method, and it calls the run() method on our behalf.)
 
 ## 4.5 Implicit Threading
+멀티코어 프로세싱의 성장에 따라 application이 쓰는 스레드는 수백개에서 수천개까지 늘어났다. 그러나 제대로된 병렬 프로그래밍을 하는 것은 매우 어렵다. 그래서 application 개발들이 multi threading을 관리하는 것을 컴파일러와 run-time 라이브러리들에 맡기는 설계의 변화가 일어나고 있다. 우린 이것은 implicit threading이라고 일컫는다.
+
 ### 4.5.1 Thread Pools
+ 4.1 section에서 우리는 multithreaded web server 구현을 위해 매 request마다 thread를 생성했다. 여기엔 두가지 문제가 있다. 매번 thread를 생성하는 걸리는 시간문제가 있고, 두번째는 조금 더 문제가 되는 것으로 무한정 스레드를 만들어주다보면, system resource에 문제가 생길 것이다. 이 문제애 대한 solution으로 우리는 thread pool을 사용한다.
+ Thread pools은 아래와 같은 이점을 제공한다.
+1. Servicing a request with an existing thread is faster than waiting to create a thread.
+2. A thread pool limits the number of threads that exist at any one point. This is particularly important on systems that cannot support a large number of concurrent threads.
+3. task 생성에 대한 업무를 기존 다른 작업들과 분리해냄으로써, task 생성에 대한 다른 strategy들을 적용할 수도 있다. 예를 들면, task들이 일정 시간 지연 후에 수행되도록 한다던가, 일정 기간을 두고 스케줄링 되게 하거나처럼 말이다.
+
 ### 4.5.2 OpenMP
+OpenMP는 C, C++ 또는 FORTRAN로 작성한 API이며, 컴파일러 지시어 집합이다. OpenMP는 share-momory 환경을 사용하여 병렬 프로그래밍을 지원한다. OpenMP에 코드 블럭을 병렬 지역(parellel regions)로 지정하면, 해당 코드는 병렬로 수행된다.
+
 ### 4.5.3 Grand Central Dispatch
+Grand Central Dispatch (GCD)—a technology for Apple’s Mac OS X and iOS operating systems—is a combination of extensions to the C language, an API, and a run-time library that allows application developers to identify sections of code to run in parallel. Like OpenMP, GCD manages most of the details of threading.
+GCD identifies extensions to the C and C++ languages known as blocks. A block is simply a self-contained unit of work.
+
 ### 4.5.4 Other Approaches
+Other commercial approaches include parallel and concurrent libraries, such as Intel’s Threading Building Blocks (TBB) and several products fromMicrosoft.
+Java 언어와 API는 동시성 프로그래밍에 대한 지원을 대폭 늘려나가고 있다. 예시로 java.util.concurrent
+를 들 수 있는데, 이것은 암묵적 스레드(implicit thread) 생성 및 관리를 지원하는 package이다.
 
 
 ## 4.6 Threading Issues
