@@ -123,17 +123,58 @@ Other commercial approaches include parallel and concurrent libraries, such as I
 Java 언어와 API는 동시성 프로그래밍에 대한 지원을 대폭 늘려나가고 있다. 예시로 java.util.concurrent
 를 들 수 있는데, 이것은 암묵적 스레드(implicit thread) 생성 및 관리를 지원하는 package이다.
 
-
 ## 4.6 Threading Issues
 ### 4.6.1 The fork() and exec() System Calls
+fork()와 exec() systemcall은 멀티스레드 프로그램에서 의미가 다르다.
+만약 프로그램에서 하나의 스레드가 fork를 호출하면, 새로운 프로세스가 생기면서 모든 스레드를 복사할까? 아니면 싱글 스레드로 새로운 프로세스가 생길까?
+어떤 UNIX 시스템에서는 두가지 버전의 fork()를 선택했다. 모든 스레드를 복사하는 방식과 하나의 스레드만 복사하는 방식.
+exec()는 전형적으로 chapter3와 동일한 방식으로 동작한다. 즉 한 스레드가 exec() system call을 하면, 스레드를 포함한 프로세스 전체를 replace한다.
+
 ### 4.6.2 Signal Handling
-### 4.6.3 Thread Cancellation
+signal은 UNIX 시스템에서 프로세스에서 특정 이벤트가 일어났음을 알려주는 방법이다. synchronously, asynchronously하게 signal을 받는다. 받는 방식과 상관 없이 아래의 패턴은 모두 동일하다.
+1. signal은 특정한 이벤트가 발생함으로써, 생성된다.
+2. signal은 하나의 프로세스로 전달된다.
+3. 전달된 signal은 반드시 처리되어야 한다. (must be handled.)
+
+모든 signal은 defaul signal handler을 기본으로 처리되나, user-defined signal hander로 override 되어 처리될 수도 있다.
+멀티 스레드 환경에서는 어디로 signal이 전달되어야 하는지 불명확하다. 일반적으로 아래 옵션들이 있다.
+1. signal이 적용되는(which the signal applies) 프로세스의 모든 스레드로 전달
+2. signal을 프로세스의 모든 스레드로 전달
+3. 일련의(certain) 스레드들로 전달
+4. 프로세스 내에서 모든 signal을 받는 특정 프로세스를 지정하여 전달
+The standard UNIX function for delivering a signal is
+kill(pid t pid, int signal)
+
+Although Windows does not explicitly provide support for signals, it
+allows us to emulate them using asynchronous procedure calls (APCs).
+
+### 4.6.3 Thread Cancellation 
+Thread cancellation involves terminating a thread before it has completed.
+A thread that is to be canceled is often referred to as the target thread. Cancellation of a target thread may occur in two different scenarios:
+1. Asynchronous cancellation. One thread immediately terminates the target thread.
+2. Deferred cancellation. The target thread periodically checks whether it should terminate, allowing it an opportunity to terminate itself in an orderly fashion.
+
+The default cancellation type is deferred cancellation. Here, cancellation occurs only when a thread reaches a cancellation point. One technique for establishing a cancellation point is to invoke the pthread testcancel() function. If a cancellation request is found to be pending, a function known as a cleanup handler is invoked.
+
 ### 4.6.4 Thread-Local Storage
+in some circumstances, each thread might need its own copy of certain data.We will call such data thread-local storage (or TLS.)
+It is easy to confuse TLS with local variables. However, local variables are visible only during a single function invocation, whereas TLS data are visible across function invocations.
+
 ### 4.6.5 Scheduler Activations
+Many systems implementing either the many-to-many or the two-level model place an intermediate data structure between the user and kernel threads. This data structure—typically known as a lightweight process, or LWP.
 
 
 ## 4.7 Ooperating-System Examples
+#### 4.7.1 Windows Threads
+The register set, stacks, and private storage area are known as the context of
+the thread.
+The primary data structures of a thread include:
+* ETHREAD—executive thread block
+* KTHREAD—kernel thread block
+* TEB—thread environment block
 
+#### 4.7.2 Linux Threads
+Linux uses the term task —rather than process or thread— when referring to a flow of control within a program.
 
 ## 4.8 Summary
 Athread is a flow of control within a process.Amultithreaded process contains several different flows of controlwithin the same address space.
