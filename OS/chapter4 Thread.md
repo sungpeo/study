@@ -177,7 +177,7 @@ The primary data structures of a thread include:
 Linux uses the term task —rather than process or thread— when referring to a flow of control within a program.
 
 ## 4.8 Summary
-Athread is a flow of control within a process.Amultithreaded process contains several different flows of controlwithin the same address space.
+A thread is a flow of control within a process.Amultithreaded process contains several different flows of controlwithin the same address space.
 User-level thread는 kernel의 관여가 없으므로 생성/변경이 훨씬 빠르다. 하지만 실제 병렬 처리를 위해서는 kernel thread와 연결되어야 하며, 그 관계를 3가지로 설명한다. (many-to-one, one-to-one, many-to-many)
 모던 OS들은 스레드 지원을 kernel에서 다 한다. 
 그리고 application 개발자들이 thread를 사용하기 위한 thread libary는 크게 POSIX Pthreads, Windows threads, Java threads가 일반적이다.
