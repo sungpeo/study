@@ -127,7 +127,7 @@ In general, a multilevel feedback queue scheduler is defined by the following pa
 
 * The number of queues
 * The scheduling algorithm for each queue
-* The method used to determine when to upgrade a process to a higher-priority queue 
+* The method used to determine when to upgrade a process to a higher-priority queue
 * The method used to determine when to demote a process to a lower-priority queue
 * The method used to determine which queue a process will enter when that process needs service
 
@@ -167,11 +167,41 @@ Here, we discuss several concerns in multiprocessor scheduling. We concentrate o
 
 ### 6.5.1 Approaches to Multiple-Processor Scheduling
 
+One approach to CPU scheduling in a multiprocessor system has all scheduling decisions, I/O processing, and other system activities handled by a single processor—the master server. The other processors execute only user code. This asymmetric multiprocessing is simple because only one processor accesses the system data structures, reducing the need for data sharing.
+
+A second approach uses symmetric multiprocessing (SMP), where each processor is self-scheduling. All processes may be in a common ready queue, or each processor may have its own private queue of ready processes.
+
 ### 6.5.2 Processor Affinity
+
+Because of the high cost of invalidating and repopulating caches, most SMP systems try to avoid migration of processes from one processor to another and instead attempt to keep a process running on the same processor. This is known as processor affinity—that is, a process has an affinity for the processor on which it is currently running.
+
+* soft affinity. When an operating system has a policy of attempting to keep a process running on the same processor—but not guaranteeing that it will do so—
+* hard affinity. some systems provide system calls
+
+Rather, the “solid lines” between sections of an operating system are frequently only “dotted lines,” with algorithms creating connections in ways aimed at optimizing performance and reliability.
 
 ### 6.5.3 Load Balancing
 
+On SMP systems, it is important to keep the workload balanced among all processors to fully utilize the benefits of having more than one processor.
+
+Load balancing attempts to keep the workload evenly distributed across all processors in an SMP system. It is important to note that load balancing is typically necessary only on systems where each processor has its own private queue of eligible processes to execute. (SMP를 지원하는 대부분의 contemporary operating systems은 private queue를 갖는다.)
+
+There are two general approaches to load balancing: push migration and pull migration. With push migration, a specific task periodically checks the load on each processor and—if it finds an imbalance—evenly distributes the load by moving (or pushing) processes from overloaded to idle or less-busy processors. Pull migration occurs when an idle processor pulls a waiting task from a busy processor.
+
+유심히 읽은 사람은 load banlancing이 processor affinity의 장점을 방해한다는 걸 알 수 있을 것이다. System engineering 입장에서 절대적인 rule은 없다. 어떤 시스템에선 imblance threshold를 가지고 pull process를 해올지 결정하기도 한다.
+
 ### 6.5.4 Multicore Processors
+
+Traditionally, SMP systems have allowed several threads to run concurrently by providingmultiple physical processors. However, a recent practice in computer hardware has been to place multiple processor cores on the same physical chip, resulting in a multicore processor.
+
+Researchers have discovered that when a processor accesses memory, it spends a significant amount of time waiting for the data to become available. This situation, known as a memory stall, may occur for various reasons, such as a cache miss (accessing data that are not in cache memory).
+
+To remedy this situation, many recent hardware designs have implemented multithreaded processor cores in which two (or more) hardware threads are assigned to each core. That way, if one thread stalls while waiting for memory, the core can switch to another thread. Figure 6.11 illustrates a dual-threaded processor core on which the execution of thread 0 and the execution of thread 1 are interleaved. From an operating-system perspective, each hardware thread appears as a logical processor that is available to run a software thread. Thus, on a dual-threaded, dual-core system, four logical processors are presented to the operating system.
+
+In general, there are two ways to multithread a processing core: coarse-grained and fine-grained multithreading.
+대단위 멀티스레딩은 memory stall이 일어나면, 실행 thread를 변경한다. instruction pipeline이 flush되고 새로운 thread에 채워줘야하기 때문에 느리다. 세분화된 멀티스레딩은 더 세분화된 레벨의 granularity로 switching되고, thread switching을 위한 logic을 포함하고 있어, thread switching cost가 작다.
+
+Notice that a multithreaded multicore processor actually requires two different levels of scheduling. On one level are the scheduling decisions that must be  ade by the operating system as it chooses which software thread to run on each hardware thread (logical processor). For this level of scheduling, the operating system may choose any scheduling algorithm, such as those described in Section 6.3. A second level of scheduling specifies how each core decides which hardware thread to run. There are several strategies to adopt in this situation.
 
 ## 6.6 Real-Time CPU Scheduling
 
