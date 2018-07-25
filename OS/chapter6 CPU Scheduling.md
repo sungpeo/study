@@ -205,16 +205,104 @@ Notice that a multithreaded multicore processor actually requires two different 
 
 ## 6.6 Real-Time CPU Scheduling
 
+Real-time OS 환경에서 CPU Scheduling하는 데에는 또 다른 이슈들이 있다. 일반적으로 우리는 soft real-time systems과 hard real-time systems를 구분해야 한다.
+
+* Soft real-time systems provide no guarantee as to when a critical real-time process will be scheduled. They guarantee only that the process will be given preference over noncritical processes.
+* Hard real-time systems have stricter requirements. A task must be serviced by its deadline; service after the deadline has expired is the same as no service at all.
+
 ### 6.6.1 Minimizing Latency
+
+event-driven 환경의 real-time system이라면..
+When an event occurs, the system must respond to and service it as quickly as possible.We refer to event latency as the amount of time that elapses from when an event occurs to when it is serviced (Figure 6.12).
+
+Two types of latencies affect the performance of real-time systems:
+
+1. Interrupt latency refers to the period of time fromthe arrival of an interrupt at the CPU to the start of the routine that services the interrupt.
+2. Dispatch latency
+
+Obviously, it is crucial for real-time operating systems to minimize interrupt latency to ensure that real-time tasks receive immediate attention.
+Indeed, for hard real-time systems, interrupt latency must not simply be minimized, it must be bounded to meet the strict requirements of these systems
+One important factor contributing to interrupt latency is the amount of time interrupts may be disabled while kernel data structures are being updated. Real-time operating systems require that interrupts be disabled for only very short periods of time.
+
+The amount of time required for the scheduling dispatcher to stop one process and start another is known as dispatch latency. Providing real-time tasks with immediate access to the CPU mandates that real-time operating systems minimize this latency as well. The most effective technique for keeping dispatch latency low is to provide preemptive kernels.
 
 ### 6.6.2 Priority-Based Scheduling
 
+As a result, the scheduler for a real-time operating system must support a priority-based algorithm with preemption.
+Note that providing a preemptive, priority-based scheduler only guarantees soft real-time functionality. Hard real-time systems must further guarantee that real-time tasks will be serviced in accord with their deadline requirements, and making such guarantees requires additional scheduling features.
+
+Before we proceed with the details of the individual schedulers, however, we must define certain characteristics of the processes that are to be scheduled. First, the processes are considered periodic. (processing time t, deadline d, and a period p)
+
+Then, using a technique known as an admission-control algorithm, the scheduler does one of two things. It either admits the process, guaranteeing that the process will complete on time, or rejects the request as impossible if it cannot guarantee that the task will be serviced by its deadline.
+
 ### 6.6.3 Rate-Monotonic Scheduling
+
+The rate-monotonic scheduling algorithm schedules periodic tasks using a static priority policy with preemption.
+
+period가 짧을 수록 높은 priority를 갖는데, 이 정책의 근거는 CPU가 더 자주 필요한 작업에 더 높은 우선 순위를 할당하는 것이다. Furthermore, rate-monotonic scheduling assumes that the processing time of a periodic process is the same for each CPU burst.
+
+Despite being optimal, then, rate-monotonic scheduling has a limitation: CPU utilization is bounded, and it is not always possible fully to maximize CPU resources. The worst-case CPU utilization for scheduling N processes is 
+
+N(2^1/N − 1).
+
+With one process in the system, CPU utilization is 100 percent, but it falls to approximately 69 percent as the number of processes approaches infinity.
 
 ### 6.6.4 Earliest-Deadline-First Scheduling
 
+Earliest-deadline-first (EDF) scheduling dynamically assigns priorities according to deadline.
+Unlike the rate-monotonic algorithm, EDF scheduling does not require that processes be periodic, nor must a process require a constant amount of CPU time per burst. The only requirement is that a process announce its deadline to the scheduler when it becomes runnable. 이론적으로도 optimal인데, context switching 비용이 있기 때문에 CPU utilization이 100%이 되는 작업은 스케줄링할 수는 없다.
+
 ### 6.6.5 Proportional Share Scheduling
+
+Proportional share schedulers must work in conjunction with an admission-control policy to guarantee that an application receives its allocated shares of time. An admission-control policy will admit a client requesting a particular number of shares only if sufficient shares are available. Total of share가 최대(ex.100)를 넘을 수 있는 새로운 프로세스가 요청되면 deny한다.
 
 ### 6.6.6 POSIX Real-Time Scheduling
 
+The POSIX standard also provides extensions for real-time computing—POSIX.1b. Here, we cover some of the POSIX API related to scheduling real-time threads. POSIX defines two scheduling classes for real-time threads:
+
+* SCHED_FIFO
+* SCHED_RR
+
+SCHED FIFO schedules threads according to a first-come, first-served policy using a FIFO queue as outlined in Section 6.3.1. However, there is no time  licing among threads of equal priority. Therefore, the highest-priority real-time thread at the front of the FIFO queue will be granted the CPU until it terminates or blocks. SCHED RR uses a round-robin policy. It is similar to SCHED FIFO except that it provides time slicing among threads of equal priority.
+
 ## 6.7 Operating-System Examples
+
+### 6.7.1 Example: Linux Scheduling
+
+in release 2.6.23 of the kernel, the Completely Fair Scheduler(CFS) became the default Linux scheduling algorithm.
+
+Scheduling in the Linux system is based on scheduling classes. Each class is assigned a specific priority. By using different scheduling classes, the kernel can accommodate different scheduling algorithms based on the needs of the system and its processes. The scheduling criteria for a Linux server, for example, may be different from those for a mobile device running Linux.
+
+Rather than using strict rules that associate a relative priority value with the length of a time quantum, the CFS scheduler assigns a proportion of CPU processing time to each task. This proportion is calculated based on the nice value(-20 ~ +19) assigned to each task.
+
+CFS doesn’t use discrete values of time slices and instead identifies a targeted latency, which is an interval of time during which every runnable task should run at least once.
+
+The CFS scheduler doesn’t directly assign priorities. Rather, it records how long each task has run by maintaining the virtual run time of each task using the per-task variable vruntime.
+
+Linux uses two separate priority ranges, one for real-time tasks and a second for normal tasks. Real-time tasks are assigned static priorities within the range of 0 to 99, and normal (i.e. non real-time) tasks are assigned priorities from 100 to 139.
+
+### 6.7.2 Example: Windows Scheduling
+
+### 6.7.3 Example: Solaris Scheduling
+
+## 6.8 Algorithm Evaluation
+
+Our criteria may include several measures, such as these:
+
+* Maximizing CPU utilization under the constraint that the maximum response time is 1 second
+* Maximizing throughput such that turnaround
+
+### 6.8.1 Deterministic Modeling
+
+One major class of evaluation methods is analytic evaluation. Analytic evaluation uses the given algorithm and the system workload to produce a formula or number to evaluate the performance of the algorithm for that workload.
+Deterministic modeling is one type of analytic evaluation. This method takes a particular predetermined workload and defines the performance of each algorithm for that workload.
+
+Deterministic modeling is simple and fast. It gives us exact numbers, allowing us to compare the algorithms. However, it requires exact numbers for input, and its answers apply only to those cases.
+
+### 6.8.2 Queueing Models
+
+### 6.8.3 Simulations
+
+### 6.8.4 Implementation
+
+## 6.9 Summary
