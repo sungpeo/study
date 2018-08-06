@@ -301,8 +301,21 @@ Deterministic modeling is simple and fast. It gives us exact numbers, allowing u
 
 ### 6.8.2 Queueing Models
 
+The computer system is described as a network of servers. Each server has a queue of waiting processes. The CPU is a server with its ready queue, as is the I/O system with its device queues. Knowing arrival rates and service rates, we can compute utilization,  average queue length, average wait time, and so on. This area of study is called queueing-network analysis.
+
+Thus, n = (lambda) × W.
+This equation, known as Little’s formula
+
 ### 6.8.3 Simulations
 
+To get a more accurate evaluation of scheduling algorithms, we can use simulations.
+
+we can use trace tapes.We create a trace tape by monitoring the real system and recording the sequence of actual events (Figure 6.25).
+
+Simulations can be expensive, often requiring hours of computer time. A more detailed simulation provides more accurate results, but it also takes more computer time. In addition, trace tapes can require large amounts of storage space. Finally, the design, coding, and debugging of the simulator can be a major task.
+
 ### 6.8.4 Implementation
+
+The most flexible scheduling algorithms are those that can be altered by the system managers or by the users so that they can be tuned for a specific application or set of applications.
 
 ## 6.9 Summary
