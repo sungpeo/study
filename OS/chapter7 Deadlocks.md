@@ -89,3 +89,102 @@ Whenever a process requests a resource that is currently available, the system m
 
 ### 7.5.2 Resource-Allocation Graph Alogrithm
 
+If we have a resource-allocation system with only one instance of each resource type, we can use a variant of the resource-allocation graph defined in Section 7.2.2 for deadlock avoidance. In addition to the request and assignment edges already described, we introduce a new type of edge, called a **claim edge**.
+
+A claim edge Pi → Rj indicates that process Pi may request resource Rj at some time in the future. This edge resembles a request edge in direction but is represented in the graph by a dashed line.
+
+If a cycle is found, then the allocation will put the system in an unsafe state. In that case, process Pi will have to wait for its requests to be satisfied.
+
+### 7.5.3 Banker’s Algorithm
+
+The resource-allocation-graph algorithm is not applicable to a resource allocation system with multiple instances of each resource type.
+
+When a new process enters the system, it must declare the maximum number of instances of each resource type that it may need. This number may not exceed the total number of resources in the system. When a user requests a set of resources, the system must determine whether the allocation of these resources will leave the system in a safe state. If it will, the resources are allocated; otherwise, the process must wait until some other process releases enough resources.
+
+Let n = number of processes, and m = number of resources types
+
+* Available: Vector of length m. If Available[ j ] = k, there are k instances of resource type Rj available
+* Max: n x m matrix. If Max[ i, j ] = k, then process Pi may request at most k instances of resource type Rj
+* Allocation: n x m matrix. If Allocation[ i, j ] = k then Pi is currently allocated k instances of Rj
+* Need: n x m matrix. If Need[ i, j ] = k then Pi may need k more instances of Rj to complete its task
+
+Need[ i, j ] = Max[ i, j ] – Allocation[ i, j ]
+
+#### 7.5.3.1 Safety Algorithm
+
+We can now present the algorithm for finding out whether or not a system is in a safe state. This algorithm can be described as follows:
+
+1. Let Work and Finish be vectors of length m and n, respectively. Initialize Work = Available and Finish[i] = false for i = 0, 1, ..., n − 1.
+
+2. Find an index i such that both
+    a. Finish[i] == false
+    b. Needi ≤Work
+    If no such i exists, go to step 4.
+
+3. Work =Work + Allocationi
+    Finish[i] = true
+    Go to step 2.
+
+4. If Finish[i] == true for all i, then the system is in a safe state.
+    This algorithm may require an order ofm × n2 operations to determine whether
+    a state is safe.
+
+#### 7.5.3.2 Resource-Request Algorithm
+
+When a request for resources is made by process Pi , the following actions are taken:
+
+1. If Requesti ≤Needi , go to step 2. Otherwise, raise an error condition, since the process has exceeded its maximum claim.
+
+2. If Requesti ≤ Available, go to step 3. Otherwise, Pi must wait, since the resources are not available.
+
+3. Have the system pretend to have allocated the requested resources to process Pi by modifying the state as follows:
+
+#### 7.5.3.3 An Illustrative Example
+
+(생략)
+
+## Deadlock Detection
+
+If a system does not employ either a deadlock-prevention or a deadlock avoidance algorithm, then a deadlock situation may occur. In this environment, the system may provide:
+
+* An algorithm that examines the state of the system to determine whether a deadlock has occurred
+* An algorithm to recover from the deadlock
+
+### 7.6.1 Single Instance of Each Resource Type
+
+If all resources have only a single instance, then we can define a deadlock detection algorithm that uses a variant of the resource-allocation graph, called a **wait-for** graph.
+
+As before, a deadlock exists in the system if and only if the wait-for graph contains a cycle. To detect deadlocks, the system needs to maintain the wait-for graph and periodically *invoke an algorithm* that searches for a cycle in the graph. An algorithm to detect a cycle in a graph requires an order of n2 operations, where n is the number of vertices in the graph.
+
+### 7.6.2 Several Instances of a Resource Type
+
+The wait-for graph scheme is not applicable to a resource-allocation system with multiple instances of each resource type.
+
+* **Available**: A vector of length m indicates the number of available resources of each type
+* **Allocation**: An n x m matrix defines the number of resources of each type currently allocated to each process
+* **Request**: An n x m matrix indicates the current request of each process. If Request[ i, j ] = k, then process Pi is requesting k more instances of resource type Rj
+
+1. Let Work and Finish be vectors of length m and n, respectively. Initialize Work = Available. For i = 0, 1, ..., n–1, if Allocationi = 0, then Finish[i] = false. Otherwise, Finish[i] = true.
+2. Find an index i such that both
+    a. Finish[i] == false
+    b. Requesti ≤Work
+    If no such i exists, go to step 4.
+3. Work =Work + Allocationi
+    Finish[i] = true
+    Go to step 2.
+4. If Finish[i] == false for some i, 0≤i<n, then the system is in a deadlocked state. Moreover, if Finish[i] == false, then process Pi is deadlocked.
+
+### 7.6.3 Detection-Algorithm Usage
+
+When should we invoke the detection algorithm? The answer depends on two factors:
+
+1. How often is a deadlock likely to occur?
+2. How many processes will be affected by deadlock when it happens?
+
+invoking the deadlock-detection algorithm for every resource request will incur considerable overhead in computation time. A less expensive alternative is simply to invoke the algorithm at defined intervals—for example, once per hour or whenever CPU utilization drops below 40 percent. (A deadlock eventually cripples system throughput and causes CPU utilization to drop.) If the detection algorithm is invoked at arbitrary points in time, the resource graph may contain many cycles. In this case, we generally cannot tell which of the many deadlocked processes “caused” the deadlock.
+
+## 7.7 Recovery from Deadlock
+
+### 7.7.1 Process Termination
+
+### 7.7.2 Resource Preemption
