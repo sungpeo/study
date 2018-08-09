@@ -219,6 +219,47 @@ invoking the deadlock-detection algorithm for every resource request will incur 
 
 ## 7.7 Recovery from Deadlock
 
+When a detection algorithm determines that a deadlock exists, several alternativesare available. One possibility is to inform the operator that a deadlock has occurred and to let the operator deal with the deadlock manually. Another possibility is to let the system recover from the deadlock automatically. There are two options for breaking a deadlock. One is simply to abort one or more processes to break the circular wait. The other is to preempt some resources from one or more of the deadlocked processes.
+
 ### 7.7.1 Process Termination
 
+* **Abort all deadlocked processes.** This method clearly will break the deadlock cycle, but at great expense. The deadlocked processes may have computed for a long time, and the results of these partial computations must be discarded and probably will have to be recomputed later.
+* **Abort one process at a time until the deadlock** cycle is eliminated. This method incurs considerable overhead, since after each process is aborted, a deadlock-detection algorithm must be invoked to determine whether any processes are still deadlocked.
+
+we should abort those processes whose termination will incur the minimum cost. Unfortunately, the term minimum cost is not a precise one. Many factors may affect which process is chosen, including:
+
+1. What the priority of the process is
+2. How long the process has computed and how much longer the process will compute before completing its designated task
+3. Howmany andwhat types of resources the process has used (for example, whether the resources are simple to preempt)
+4. How many more resources the process needs in order to complete
+5. How many processes will need to be terminated
+6. Whether the process is interactive or batch
+
 ### 7.7.2 Resource Preemption
+
+To eliminate deadlocks using resource preemption, we successively preempt some resources fromprocesses and give these resources to other processes until the deadlock cycle is broken.
+If preemption is required to deal with deadlocks, then three issues need to be addressed:
+
+1. **Selecting a victim.** As in process termination, we must determine the order of preemption to minimize cost. Cost factors may include such parameters as the number of resources a deadlocked process is holding and the amount of time the process has thus far consumed.
+
+2. **Rollback.** Since, in general, it is difficult to determine what a safe state is, the simplest solution is a total rollback: abort the process and then restart it. Although it is more effective to roll back the process only as far as necessary to break the deadlock, this method requires the system to keep more information about the state of all running processes.
+
+3. **Starvation.** In a system where victim selection is based primarily on cost factors, it may happen that the same process is always picked as a victim. As a result, this process never completes its designated task, a starvation situation any practical system must address. Clearly, we must ensure that a process can be picked as a victim only a (small) finite number of times. The most common solution is to include the number of rollbacks in the cost factor.
+
+## 7.8 Summary
+
+There are three principal methods for dealing with deadlocks:
+1. pevent or avoid deadlocks
+2. detect it, and then recover
+3. Ignore the problem
+
+A deadlock can occur only if four necessary conditions hold simultaneously in the system: mutual exclusion, hold and wait, no preemption, and circular wait. To prevent deadlocks, we can ensure that at least one of the necessary conditions never holds.
+
+A method for avoiding deadlocks, rather than preventing them, requires that the operating system have a priori information about how each process will utilize system resources. The banker’s algorithm, for example, requires a priori information about the maximum number of each resource class that each process may request. Using this information, we can define a deadlock avoidance algorithm.
+
+If a system does not employ a protocol to ensure that deadlocks will never occur, then a detection-and-recovery scheme may be employed. A deadlock detection algorithm must be invoked to determine whether a deadlock has occurred. If a deadlock is detected, the system must recover either by terminating some of the deadlocked processes or by preempting resources from some of the deadlocked processes.
+
+Where preemption is used to deal with deadlocks, three issues must be addressed: selecting a victim, rollback, and starvation. In a system that selects victims for rollback primarily on the basis of cost factors, starvation may occur, and the selected process can never complete its designated task.
+
+Researchers have argued that none of the basic approaches alone is appropriate for the entire spectrum of resource-allocation problems in operating systems. The basic approaches can be combined, however, allowing us to select an optimal approach for each class of resources in a system.
+
