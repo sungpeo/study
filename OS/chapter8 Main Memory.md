@@ -72,7 +72,83 @@ Here, though, linking, rather than loading, is postponed until execution time. T
 
 With dynamic linking, a **stub** is included in the image for each library routine reference. The stub is a small piece of code that indicates how to locate the appropriate memory-resident library routine or how to load the library if the routine is not already present.
 
-Without dynamic linking, all such programs would need to be relinked to gain access to the new library. So that programs will not accidentally execute new, incompatible versions of libraries, version information is included in both the program and the library. Thus, only programs that are compiled with the new library version are affected by any incompatible changes incorporated in it. Other programs linked before the new library was installed will continue using the older library. This system is also known as shared libraries.
+Without dynamic linking, all such programs would need to be relinked to gain access to the new library. So that programs will not accidentally execute new, incompatible versions of libraries, version information is included in both the program and the library. Thus, only programs that are compiled with the new library version are affected by any incompatible changes incorporated in it. Other programs linked before the new library was installed will continue using the older library. This system is also known as **shared libraries**.
 
 Unlike dynamic loading, dynamic linking and shared libraries generally require help from the operating system. If the processes in memory are protected from one another, then the operating system is the only entity that can check to see whether the needed routine is in another process’s memory space or that can allow multiple processes to access the same memory addresses. We elaborate on this concept when we discuss paging in Section 8.5.4.
+
+## 8.2 Swapping
+
+process가 수행되려면 반드시 메모리 내에 있어야한다. 그러나 임시로 backing store로 swapp 될 수 있고, 다시 수행되기 위해 memory에 다시 올려서 사용된다. total physical address space보다 큰 크기를 사용해서 multiprogramming 정도를 높일 수 있다.
+
+### 8.2.1 Standard Swapping
+
+표준 swapping은 메인 메모리와 backing store 사이에서 프로세스를 이동시킴으로 동작한다. backing store는 일반적으로 fast disk가 사용된다. all memory images의 복사본을 담을 정도로 크기도 충분히 커야하며, 저장된 memory images로의 직접 접근을 제공해야한다. 시스템을 **ready queue**를 통해 backing store나 in memory에 있는 프로세스면서 ready to run인 모든 프로세스를 관리한다.
+
+Notice that the major part of the swap time is transfer time. The total transfer time is directly proportional to the amount of memory swapped.
+
+Swapping is constrained by other factors as well. If we want to swap a process, we must be sure that it is completely idle. 만약 I/O가 비동기로 I/O buffer를 위한 user memory에 접근 중이라면, 해당 프로세스는 swapped 될 수 없다.
+If we were to swap out process P1 and swap in process P2, the I/O operation might then attempt to use memory that now belongs to process P2. There are two main solutions to this problem: never swap a process with pending I/O, or execute I/O operations only into operating-system buffers.
+**double buffering** ??
+
+Standard swappig은 현대 OS에서는 사용되지 않는다. 그건 swapping time도 많이 들고, execution time은 너무 작아서 reasonable한 memory-management solution이 될 수 없다. 대신 modifed version으로 사용된다.
+
+* In one common variation, swapping is normally disabled but will start if the amount of free memory (unused memory available for the operating system or processes to use) falls below a threshold amount.
+
+* Another variation involves swapping portions of processes—rather than entire processes—to decrease swap time.
+
+Typically, these modified forms of swapping work in conjunction with virtual memory, which we cover in Chapter 9.
+
+### 8.2.2 Swapping on Mobile Systems
+
+모바일 환경에서는 typically swapping을 지원하지 않는다. 모바일 기기는 비교적 용량이 큰 hard disk가 아닌 flash memory를 쓰기 때문에, 모바일 OS designer들은 swapping을 피한다. 또한 flash memory는 쓰기 제한 있기 때문이기도 하다.
+swapping을 쓰는 대신에, free memory가 일정 threshold 아래로 떨어지면, Apple의 iOS 같은 경우엔 application들이 자발적으로 메모리를 양도(reliquish)하도록 요청한다. Read-only data의 경우 메모리에서 삭제되고 수정된 data들은 남는다. 그러나 충분한 메모리를 만들어내지 못하면 어떤 application이든 Operating system에 의해 꺼질 수도 있다. Android도 iOS와 마찬가지로 swapping은 지원하지 않고, free memory가 부족하면 process를 죽일 수도 있다. 다만 **application state**를 flash memory가 써놓고 빠른 재시작이 가능하도록 한다.
+
+## 8.3 Contiguous Memory Allocation
+
+메인 메모리는 operating system과 user process들이 사용한 가능해야 한다. 그러므로 우리는 가능한한 효율적으로 main memory를 사용할 필요가 있다. 이번 장에선 예전 방법 중 하나인 contiguous(인접한) memory allocation을 설명하겠다.
+
+The memory is usually divided into two partitions: one for the resident operating system and one for the user processes.
+
+We usually want several user processes to reside in memory at the same time. We therefore need to consider how to allocate available memory to the processes that are in the input queue waiting to be brought into memory. In contiguous memory allocation, each process is contained in a single section of memory that is contiguous to the section containing the next process.
+
+각 프로세스는 다음 프로세스를 포함하는 섹션에 인접한 메모리의 단일 섹션에 포함됩니다 ?
+
+### 8.3.1 Memory Protection
+
+메모리 할당에 대해 더 이야기하기 전에 memory protection에 대해 먼저 짚어보자. 앞서 이야기한 2가지 idea를 복합사용함으로써, 프로세스가 소유하지 않은 메모리로의 접근을 막을 수 있다. relocation register와 limit register를 사용함으로써 목적을 달성할 수 있다. The relocation register contains the value of the smallest physical address; the limit register contains the range of logical addresses (for example, relocation = 100040 and limit = 74600).
+
+Such code is sometimes called **transient** operating-system code; it comes and goes as needed. Thus, using this code changes the size of the operating system during program
+execution.
+
+### 8.3.2 Memory Allocation
+
+할당하기 위해 분할하는 가장 쉬운 방법은 fixed-size로 partition을 만드는 것이다. 각각의 partition은 정확히 하나의 프로세스만을 가질 수 있다. 그러므로, multiprogramming degree는 partition의 개수에 의해 정해진다. **multiple partition method**이라 불리는 이 방법에서 partition이 비어 있으면 input queue로부터 선택된 process가 비어 있는 partition으로 로딩된다. 프로세스가 끝나면, 파티션은 다시 사용 가능해진다. IBM OS/360 operating system (called MFT)에서 사용되던 방법인데, 지금은 안 쓰인다. 
+
+In the variable-partition scheme, the operating system keeps a table indicating which parts of memory are available and which are occupied. Initially, all memory is available for user processes and is considered one large block of available memory, a hole. Eventually, as you will see, memory contains a set of holes of various sizes.
+
+Memory is allocated to processes until, finally, the memory requirements of the next process cannot be satisfied—that is, no available block of memory (or hole) is large enough to hold that process. The operating system can then wait until a large enough block is available, or it can skip down the input queue to see whether the smaller memory requirements of some other process can be met.
+If the new hole is adjacent to other holes, these adjacent holes are merged to form one larger hole. At this point, the system may need to check whether there are processes waiting for memory and whether this newly freed and recombined memory could satisfy the demands of any of these waiting processes.
+This procedure is a particular instance of the general **dynamic storage allocation problem**, which concerns how to satisfy a request of size n from a list of free holes. There are many solutions to this problem. The first-fit, best-fit, and worst-fit strategies are the ones most commonly used to select a free hole from the set of available holes.
+
+* **First fit.** Allocate the first hole that is big enough. Searching can start either at the beginning of the set of holes or at the location where the previous first-fit search ended.We can stop searching as soon as we find a free hole that is large enough.
+
+* **Best fit.** Allocate the smallest hole that is big enough. We must search the entire list, unless the list is ordered by size. This strategy produces the smallest leftover hole.
+
+* **Worst fit.** Allocate the largest hole. Again, we must search the entire list, unless it is sorted by size. This strategy produces the largest leftover hole, which may be more useful than the smaller leftover hole from a best-fit approach.
+
+### 8.3.3 Fragmentation
+
+Both the first-fit and best-fit strategies for memory allocation suffer from **external fragmentation**. process들이 작업을 끝내더라도 free memory space들이 조각들로 쪼개져 있어서, (not contiguous) 가용할 수 없게 된다.
+
+Statistical analysis of first fit, for instance, reveals that, even with some optimization, given N allocated blocks, another 0.5 N blocks will be lost to fragmentation. That is, one-third of memory may be unusable! This property is known as the **50-percent rule**.
+
+너무 작은 hole의 경우, hole의 크기보다 tracking하는 드는 overhead가 더 크다. 이런 문제가 생기지 않도록 physical memory를 fixed-sized block으로 쪼개서 unit별로 메모리를 할당해서 쓰기도 한다. 이렇게 되면 할당한 메모리에 비해 필요한 메모리는 작아서, **internal fragmentation**이 발생한다.
+
+external fragmentation에 대한 솔루션 중에 하나로 **compaction**이 있다. The goal is to shuffle the memory contents so as to place all free memory together in one large block. Compaction is not always possible, however. If relocation is static and is done at assembly or load time, compaction cannot be done. It is possible only if relocation is dynamic and is done at execution time. If addresses are relocated dynamically, relocation requires only moving the program and data and then changing the base register to reflect the new base address. When compaction is possible, we must determine its cost. The simplest compaction algorithm is to move all processes toward one end of memory; all holes move in the other direction, producing one large hole of available memory. This scheme can be expensive.
+
+Another possible solution to the external-fragmentation problem is to permit the logical address space of the processes to be noncontiguous, thus allowing a process to be allocated physical memory wherever such memory is available. Two complementary techniques achieve this solution: segmentation (Section 8.4) and paging (Section 8.5). These techniques can also be combined.
+
+Fragmentation is a general problem in computing that can occur wherever we must manage blocks of data. We discuss the topic further in the storage management chapters (Chapters 10 through and 12).
+
+## 8.4 Segmentation
 
