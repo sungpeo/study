@@ -152,3 +152,56 @@ Fragmentation is a general problem in computing that can occur wherever we must 
 
 ## 8.4 Segmentation
 
+What if the hardware could provide a memory mechanism that mapped the programmer’s view to the actual physical memory? The system would have more freedom to manage memory, while the programmer would have a more natural programming environment. Segmentation provides such a mechanism.
+
+### 8.4.1 Basic Method
+
+프로그래머는 메모리 내부의 모듈이나 data element를 이름으로 구분하지 주소로 생각하지 않는다.
+Segmentation is a memory-management scheme that supports this programmer view of memory. A logical address space is a collection of segments. Each segment has a name and a length.
+
+Libraries that are linked in during compile time might be assigned separate segments. The loader would take all these segments and assign them segment numbers.
+
+### 8.4.2 Segmentation Hardware
+
+This mapping is effected by a **segment table**. Each entry in the segment table has a **segment base** and a **segment limit**. The segment table is thus essentially an array of base–limit register pairs.
+
+## 8.5 Paging
+
+Segmentation permits the physical address space of a process to be noncontiguous. Paging is another memory-management scheme that offers this advantage. paging은 외부 파편화를 피하고 compaction이 필요 없다. 
+반면에 segmentation은 그렇지 않다. It also solves the considerable problem of fitting memory chunks of varying sizes onto the backing store. Most memory-management schemes used before the introduction of paging suffered from this problem. The problem arises because, when code fragments or data residing in main memory need to be swapped out, space must be found on the backing store. The backing store has the same fragmentation problems discussed in connection with main memory, but access is much slower, so compaction is impossible. Because of its advantages over earlier methods, paging in its various forms is used in most operating systems, from those for mainframes through those for smartphones. Paging is implemented through cooperation between the operating system and the computer hardware.
+
+### 8.5.1 Basic Method
+
+The basic method for implementing paging involves breaking physical memory into fixed-sized blocks called **frames** and breaking logical memory into blocks of the same size called **pages**.
+
+The page size (like the frame size) is defined by the hardware. The size of a
+page is a power of 2, varying between 512 bytes and 1 GB per page, depending
+on the computer architecture.
+If the size of the logical address space is 2m, and a page size is 2n bytes, then the high-order m− n bits of a logical address designate the page number, and the n low-order bits designate the page offset
+
+page table : pages -> frames
+
+If process size is independent of page size,weexpect internal fragmentation to average one-half page per process. This consideration suggests that small page sizes are desirable. However, overhead is involved in each page-table entry, and this overhead is reduced as the size of the pages increases. Also, disk I/O is more efficient when the amount data being transferred is larger (Chapter 10). Generally, page sizes have grown over time as processes, data sets, and main memory have become larger. Today, pages typically are between 4 KB and 8 KB in size, and some systems support even larger page sizes.
+
+An important aspect of paging is the clear separation between the programmer’s view ofmemory and the actual physical memory. The programmer views memory as one single space, containing only this one program. In fact, the user program is scattered throughout physical memory, which also holds other programs.
+
+Since the operating system is managing physical memory, it must be aware of the allocation details of physical memory—which frames are allocated, which frames are available, how many total frames there are, and so on. This information is generally kept in a data structure called a **frame table**.
+
+The operating system maintains a copy of the page table for each process, just as it maintains a copy of the instruction counter and register contents. This copy is used to translate logical addresses to physical addresses whenever the operating system must map a logical address to a physical address manually. It is also used by the CPU dispatcher to define the hardware page table when a process is to be allocated the CPU. Paging
+therefore increases the context-switch time.
+
+### 8.5.2 Hardware Support
+
+
+
+## 8.6 Structure of the Page Table
+
+
+## 8.7 Example: Intel 32 and 64-bit Architectures
+
+
+## 8.8 Example: ARM Architecture
+
+
+## 8.9 Summary
+
