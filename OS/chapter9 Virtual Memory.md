@@ -26,12 +26,11 @@ instructions를 실행시키기 위해서 물리 메모리에 있어야한다는
 
  일부만을 메모리에 올려 프로그램을 실행시킬 수 있다면 많은 이점을 가져다줄 것이다.
 
-• A program would no longer be constrained by the amount of physical
-memory that is available. Users would be able to write programs for an
-extremely large virtual address space, simplifying the programming task.
-• Because each user program could take less physical memory, more
-programs could be run at the same time, with a corresponding increase in
-CPU utilization and throughput but with no increase in response time or
-turnaround time.
-• Less I/O would be needed to load or swap user programs into memory, so
-each user program would run faster.
+* 프로그램이 더이상 물리 메모리 크기로 한정되지 않는다. 사용자는 매우 큰 가상 주소 공간을 사용함으로써 프로그래밍을 간단히 할 수 있다.
+* 각각의 사용자 프로그램이 물리 메모리를 적게 사용하므로, 더 많은 프로그램들이 동시에 처리될 수 있다. CPU의 사용률과 throughput은 증가하지만 response time이나 trunaround time은 변하지 않는다.
+* 사용자 프로그램을 메모리에 올리거나 swap하는 I/O가 적어지므로, 각각의 프로그램을 더 빠르게 수행될 것이다.
+
+**Virtual memory**는 사용자가 물리 메모리를 인지하는 방식인 logical memory의 분리(separation)를 수반한다. 이 분리를 통해, 사용가능한 물리 메모리가 적응 상황에서도 프로그래머에게 매우 큰 가상 메모리를 사용할 수 있다. 가상 메모리는 프로그래밍을 훨씬 쉽게 만든다. 개발자가 사용 가능한 물리 메모리에 대한 고민 없이, 프로그램의 주요 로직에만 집중할 수 있도록 해주기 때문이다.
+
+프로세스의 **virtual address space**은 프로세스가 메모리에 저장되는 방법에 대한 논리적 (또는 가상의) 관점을 나타낸다. 프로세스는 특정 logical address (0)에서 시작하며 Figure 9.2에서 보이는 것처럼 인접한 메모리에 존재한다.
+8장에서 봤듯이, 물리 메모리는 page frame들로 구성되고, 해당 physical pager frame들은 근접하여 할당되지는 않을 수도 있다. It is up to the memory management unit (MMU) to map logical pages to physical page frames in memory.
