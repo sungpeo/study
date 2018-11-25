@@ -145,4 +145,18 @@ Operating systems typically allocate these pages using a technique known as **ze
 
 Several versions of UNIX (including Solaris and Linux) provide a variation of the fork() system call — vfork() (for **virtual memory fork**) — that operates differently from fork() with copy-on-write. With vfork(), the parent process is suspended, and the child process uses the address space of the parent. Because vfork() does not use copy-on-write, if the child process changes any pages of the parent’s address space, the altered pages will be visible to the parent once it resumes. Therefore, vfork() must be used with caution to ensure that the child process does not modify the address space of the parent. vfork() is intended to be used when the child process calls exec() immediately after creation. Because no copying of pages takes place, vfork() is an extremely efficient method of process creation and is sometimes used to implement UNIX command-line shell interfaces.
 
+## 9.4 Page Relacement
+
+page-fault rate에 대한 앞선 논의를 보면, 우리는 개별 page faults는 최대 한번, 처음 referenced 될 때 발생한다고 짐작했다. 그러나 이 표현은 정확하지 않다. 열개의 페이지로 이뤄진 하나의 프로세스가 정확히 그 중 절반을 쓴다고 하면, 절대 사용되지 않을 5개의 페이지에 대한 I/O load를 절약할 수 있다. 우리는 또한 멀티프로그래밍 정도를 증가시킬 수 있다. 만약 40개의 frame이 있따면, 우리는 8개의 프로세스를 수행할 수 있다. page 10개 중 5개는 절대 쓰이지 않기 때문에.
+
+이런 방법을 통해 우리는 메모리를 **over-allocating**한다. 만약 같은 종류의 프로세스를 6개를 돌렸다고 치자. 그러나 어떤 특정 data set으로 인해 page 10개가 전부 필요하게 될 수 있다. 그러면 사용가능한 frame은 40개 뿐이지만, 60개를 필요로 하게 된다.
+
+더 나아가 시스템 메로리는 프로그램 pages를 갖고 있기만 한 것은 아니다. I/O를 위한 buffer도 상당한 메모리를 소모한다. 이런 사용은 memory-placement algorithm의 부담을 증가시킬 수 있다. Deciding how much memory to allocate to I/O and how much to program pages is a significant challenge. Some systems allocate a fixed percentage of memory for I/O buffers, whereas others allow both user processes and the I/O subsystem to compete for all system memory.
+
+Over-allocation of memory manifests itself as follows. While a user process is executing, a page fault occurs. The operating system determines where the desired page is residing on the disk but then finds that there are no free frames on the free-frame list; all memory is in use (Figure 9.9).
+The operating system has several options at this point. It could terminate the user process. However, demand paging is the operating system’s attempt to improve the computer system’s utilization and throughput. Users should not be aware that their processes are running on a paged system—paging should be logically transparent to the user. So this option is not the best choice.
+The operating system could instead swap out a process, freeing all its frames and reducing the level of multiprogramming. This option is a good one in certain circumstances, and we consider it further in Section 9.6. Here, we discuss the most common solution: **page replacement.**
+
+### 9.4.1 Basic Page Relacement
+
 
