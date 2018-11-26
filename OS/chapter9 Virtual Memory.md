@@ -38,13 +38,13 @@ instructions를 실행시키기 위해서 물리 메모리에 있어야한다는
 Figure 9.2에서 보듯이, 우리는 heap 위의 공간을 활용해서 dynamic memory allocation을 사용할 수 있다. 비슷하게 stack을 아래 공간으로 늘려서 function call들을 수행할 수도 있다. heap과 stack 사이의 큰 빈 공간이 virtual address space의 일부분이고 실제로 사용할 경우에 physical pages를 요청해서 사용할 것이다. **sparse** address spaces(holes)들도 stack이나 heap segments도 사용하거나 dynamically link libraries로 사용되기도 한다.
  또한, logical memory를 physical memory로 분리함으로써, virtual memory는 파일이나 메모리를 여러 프로세스들이 공유해서 사용하도록 할 수 있다. (section 8.5.4). 이것으로 인한 이점은 아래와 같다.
 
-  * shared object를 virtual address space에 매핑함으로써, 시스템 라이브러리들은 여러 프로세스가 공유할 수 있다. 프로세스들은 각자의 virtual address space로 라이브러리에서 접근한다고 생각하겠지만, 라이브러리를 포함하는 physical memory의 page는 모든 프로세스들로 공유되고 있는 것이다. 일반적으로 라이브러리 매핑은 read-only로 매핑된다.
+* shared object를 virtual address space에 매핑함으로써, 시스템 라이브러리들은 여러 프로세스가 공유할 수 있다. 프로세스들은 각자의 virtual address space로 라이브러리에서 접근한다고 생각하겠지만, 라이브러리를 포함하는 physical memory의 page는 모든 프로세스들로 공유되고 있는 것이다. 일반적으로 라이브러리 매핑은 read-only로 매핑된다.
 
-  * 비슷하게 프로세스들은 메모리를 공유할 수 있다. 3장을 떠올려보면 공유 메모리가 2개 이상의 프로세스들이 커뮤니케이션할 수 있는 통로가 되었다. virtual memory는 하나의 프로세서그ㅏ 메모리 region을 만들고 그것을 다른 프로세스들과 공유할 수 있게 한다. 이 region을 공유하는 프로세스들은 자신의 virtual address space의 일부로 간주하고 사용한다. 그러나 실제 physical pages들은 공유되고 있는 것이다. (Figure 9.3)
+* 비슷하게 프로세스들은 메모리를 공유할 수 있다. 3장을 떠올려보면 공유 메모리가 2개 이상의 프로세스들이 커뮤니케이션할 수 있는 통로가 되었다. virtual memory는 하나의 프로세서그ㅏ 메모리 region을 만들고 그것을 다른 프로세스들과 공유할 수 있게 한다. 이 region을 공유하는 프로세스들은 자신의 virtual address space의 일부로 간주하고 사용한다. 그러나 실제 physical pages들은 공유되고 있는 것이다. (Figure 9.3)
 
-  * pages는 프로세스가 fork system call을 통해 생성된 경우에도 공유해서 사용된다. 
+* pages는 프로세스가 fork system call을 통해 생성된 경우에도 공유해서 사용된다. 
 
-  virtual memory에 대해 더 알아볼 것인데, 먼저 implementin부터 살펴보자.
+virtual memory에 대해 더 알아볼 것인데, 먼저 implementin부터 살펴보자.
 
 ## 9.2 Demand Paging
 
@@ -97,9 +97,9 @@ To compute the effective access time, we must know how much time is needed to se
 3. Determine that the interrupt was a page fault.
 4. Check that the page reference was legal and determine the location of the page on the disk.
 5. Issue a read from the disk to a free frame:
-a. Wait in a queue for this device until the read request is serviced.
-b. Wait for the device seek and/or latency time.
-c. Begin the transfer of the page to a free frame.
+    * a. Wait in a queue for this device until the read request is serviced.
+    * b. Wait for the device seek and/or latency time.
+    * c. Begin the transfer of the page to a free frame.
 6. While waiting, allocate the CPU to some other user (CPU scheduling, optional).
 7. Receive an interrupt from the disk I/O subsystem (I/O completed).
 8. Save the registers and process state for the other user (if step 6 is executed).
@@ -109,6 +109,7 @@ c. Begin the transfer of the page to a free frame.
 12. Restore the user registers, process state, and new page table, and then resume the interrupted instruction.
 
 In any case, we are faced with three major components of the page-fault service time:
+
 1. Service the page-fault interrupt.
 2. Read in the page.
 3. Restart the process.
@@ -118,15 +119,20 @@ hundred instructions. These tasks may take from 1 to 100 microseconds each. The 
 
 With an average page-fault service time of 8 milliseconds and a memory- access time of 200 nanoseconds, the effective access time in nanoseconds is
 
- effective access time = (1 − p) × (200) + p (8 milliseconds)
- = (1 − p) × 200 + p × 8,000,000
- = 200 + 7,999,800 × p.
+```
+effective access time 
+= (1 − p) × (200) + p (8 milliseconds)
+= (1 − p) × 200 + p × 8,000,000
+= 200 + 7,999,800 × p.
+```
 
 We see, then, that the effective access time is directly proportional to the **page-fault rate**. If one access out of 1,000 causes a page fault, the effective access time is 8.2 microseconds. The computer will be slowed down by a factor of 40 because of demand paging! If we want performance degradation to be less than 10 percent, we need to keep the probability of page faults at the following level:
 
+```
  220 > 200 + 7,999,800 × p, 
  20 > 7,999,800 × p,
  p < 0.0000025.
+```
 
 That is, to keep the slowdown due to paging at a reasonable level, we can allow fewer than one memory access out of 399,990 to page-fault. In sum, it is important to keep the page-fault rate low in a demand-paging system. Otherwise, the effective access time increases, slowing process execution dramatically.
 
@@ -147,11 +153,11 @@ Several versions of UNIX (including Solaris and Linux) provide a variation of th
 
 ## 9.4 Page Relacement
 
-page-fault rate에 대한 앞선 논의를 보면, 우리는 개별 page faults는 최대 한번, 처음 referenced 될 때 발생한다고 짐작했다. 그러나 이 표현은 정확하지 않다. 열개의 페이지로 이뤄진 하나의 프로세스가 정확히 그 중 절반을 쓴다고 하면, 절대 사용되지 않을 5개의 페이지에 대한 I/O load를 절약할 수 있다. 우리는 또한 멀티프로그래밍 정도를 증가시킬 수 있다. 만약 40개의 frame이 있따면, 우리는 8개의 프로세스를 수행할 수 있다. page 10개 중 5개는 절대 쓰이지 않기 때문에.
+page-fault rate에 대한 앞선 논의를 보면, 우리는 개별 page faults는 최대 한번, 처음 referenced 될 때 발생한다고 짐작했다. 그러나 이 표현은 정확하지 않다. 열개의 페이지로 이뤄진 하나의 프로세스가 정확히 그 중 절반을 쓴다고 하면, 절대 사용되지 않을 5개의 페이지에 대한 I/O load를 절약할 수 있다. 우리는 또한 멀티프로그래밍 정도(degree)를 증가시킬 수 있다. 만약 40개의 frame이 있다면, 우리는 8개의 프로세스를 수행할 수 있다. page 10개 중 5개는 절대 쓰이지 않기 때문에.
 
 이런 방법을 통해 우리는 메모리를 **over-allocating**한다. 만약 같은 종류의 프로세스를 6개를 돌렸다고 치자. 그러나 어떤 특정 data set으로 인해 page 10개가 전부 필요하게 될 수 있다. 그러면 사용가능한 frame은 40개 뿐이지만, 60개를 필요로 하게 된다.
 
-더 나아가 시스템 메로리는 프로그램 pages를 갖고 있기만 한 것은 아니다. I/O를 위한 buffer도 상당한 메모리를 소모한다. 이런 사용은 memory-placement algorithm의 부담을 증가시킬 수 있다. Deciding how much memory to allocate to I/O and how much to program pages is a significant challenge. Some systems allocate a fixed percentage of memory for I/O buffers, whereas others allow both user processes and the I/O subsystem to compete for all system memory.
+더 나아가 시스템 메모리는 프로그램 pages를 갖고 있기만 한 것은 아니다. I/O를 위한 buffer도 상당한 메모리를 소모한다. 이런 사용은 memory-placement algorithm의 부담을 증가시킬 수 있다. 얼마나 많은 메모리를 I/O에 할당해야할지, program page에 할당해야 할지에 대한 문제는 significant challenge이다. Some systems allocate a fixed percentage of memory for I/O buffers, whereas others allow both user processes and the I/O subsystem to compete for all system memory.
 
 Over-allocation of memory manifests itself as follows. While a user process is executing, a page fault occurs. The operating system determines where the desired page is residing on the disk but then finds that there are no free frames on the free-frame list; all memory is in use (Figure 9.9).
 The operating system has several options at this point. It could terminate the user process. However, demand paging is the operating system’s attempt to improve the computer system’s utilization and throughput. Users should not be aware that their processes are running on a paged system—paging should be logically transparent to the user. So this option is not the best choice.
@@ -159,4 +165,104 @@ The operating system could instead swap out a process, freeing all its frames an
 
 ### 9.4.1 Basic Page Relacement
 
+Page replacement는 다음과 같은 접근방법을 따른다. free인 frame이 없으면, 현재 사용되지 않는 것을 찾아서 해제시킨다. frame의 내용을 swap space에 쓰고, page table을 수정해서 해당 page가 더이상 메모리가 없다고 표시한다. (Figure 9.10). 이제 해제된 frame을 process faulted를 위해 홀딩하고 있는다. page-fault service routine을 수정해서 page replacement를 포함하도록 하자.
 
+1. 디스크에서 필요한 page의 위치를 찾는다.
+2. free frame을 찾는다.
+    * a. free frame이 있으면, 그것을 사용한다.
+    * b. free frame이 없으면, page-replacement algorithm이 **victim frame**을 선택한다.
+    * c. victim frame을 디스크에 쓰고, page와 frame table을 그에 맞게 수정한다.
+3. 필요한 page를 새로 freed frame으로 읽어들인다. page와 frame tables을 수정한다.
+4. page fault가 발생한 데의 user process를 이어간다.
+
+Notice that, free frame이 없다면, 2개의 page transfer가 필요하다. (one out and one in). 이 상황은 page-fault service time을 2배로 증가시키며, 그에 따라 access time도 늘어난다.
+ 우리는 이 overhead를 **modify bit (or dirty bit)**을 사용해서 줄일 수 있다. 이 방법이 사용될 때, 각각의 page나 frame은 하드웨어에 modify bit를 하나씩 가지고 있다. page의 modify bit는 page에 어느 byte가 쓰여졌던 지 상관 없이 언제든 하드웨어로부터 세팅되어, page가 수정됐음을 나타낸다. replacement를 위해 page를 선택할 때 modify bit 을 검토한다. bit가 세팅되어 있다면, disk로부터 읽혀진 후에 수정됐음을 알 수 있다. 이런 경우, page를 disk에 반드시 써야한다. 그러나, 만약 modify bit가 세팅되지 않은 경우엔 disk에서 읽은 후 메모리에서 수정이 없었던 것이고, 그러므로 disk에 다시 쓰지 않아도 된다. 이미 disk에 있으니까. 이 방법은 또한 read-only pages에도 적용된다. (for example, pages of binary code). 그런 page들은 수정될 수 없다. 그래서 필요한 순간이 오면 버리면 된다. 이 방법은 현저하게 page fault를 service하는 데 필요한 시간을 줄일 수 있다. page가 수정되지 않았다면, I/O 시간이 절반으로 줄어들기 때문이다. 
+
+ Page replacement is basic to demand paging. logical physical memory를 분리하고, 이 메커니즘을 통해 많은 양의 virtual memory를 작은 physical memory 위에서도 제공할 수 있게 된다. demand paging 없이 user addresses are mapped into physical addresses, and the two sets of addresses can be different. 모든 프로세스의 page가 physical memory에 있어야만 한다. 그러나 demand paging을 쓰면, logical address space가 더이상 physical memory에 제한되지 않는다. 20개의 page를 가진 user process가 하나 있다면, demand paging과 replacement algorithm을 사용해서 10개의 frame으로 수행할 수 있다. If a page that has been modified is to be replaced, its contents are copied to the disk. A later reference to that page will cause a page fault. At that time, the page will be brought back into memory, perhaps replacing some other page in the process.
+
+ demand paging을 구현하려면 해결해야하는 2가지 문제가 있다. 반드시 ***frame-allocation algorithm**과 **page-replacement algorithm**을 개발해야만 한다. 메모리에 여러 프로세스가 있을 때 frame을 process마다 얼마나 할당할 것인지, 그리고 page replacement가 필요할 때 어떤 frame을 교체시킬 것인지를 선택해야 하기 때문이다. 이 문제를 풀기 위한 적절한 알고리즘을 설계하는 것은 중요한 업무이다. 왜냐하면 disk I/O가 매우 비싼 작업이기 때문이다. demand-paging methods에서 약간만 향상이 되더라도 시스템 성능에 큰 도움이 될 정도이다.
+
+There are many different page-replacement algorithms. Every operating system probably has its own replacement scheme. How do we select a particular replacement algorithm? In general, we want the one with the lowest page-fault rate.
+
+우리는 알고리즘을 특정 string of memory reference에서 실행하고 page fault 수를 계산하여 알고리즘을 평가한다. The string of memory references is called a **reference string**. 우리는 reference string을 인위적으로 생성할 수 있다, 또는 주어진 시스템을 추적하고 각각의 memory reference의 주소를 기록할 수 있다. 후자의 경우 매우 큰 데이터가 생성된다. (ont the order of 1 million addresses per second). 이 숫자를 줄이기 위해 우리는 2개의 fact를 사용한다.
+ 
+첫째, 주어진 page size에서의 page number를 고려해야 한다.
+둘째, page p에 대한 reference가 있다면, 바로 다음에 page p에 대한 어떤 reference가 오더라도 page fault는 일어나지 않는다.
+
+Obviously, as the number of frames available increases, the number
+of page faults decreases
+
+### 9.4.2 FIFO Page Replacement
+
+The simplest page-replacement algorithm is a first-in, first-out (FIFO) algorithm. (Figure 9.12) The FIFO page-replacement algorithm is easy to understand and program. However, its performance is not always good.
+
+followin reference string:
+
+1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5
+
+Notice that the number of faults for four frames (ten) is greater than the number of faults for three frames (nine)! This most unexpected result is known as **Belady’s anomaly**: for some page-replacement algorithms, the page-fault rate may increase as the number of allocated frames increases.
+
+### 9.4.3 Optimal Page Relacement
+
+Belady's anomaly의 발견으로 인한 하나의 결과가 **optimal page-relacement algorithm**의 발견이다. page-fault rate가 가장 낮은 algorithm들은 모두 Belady' anomaly를 겪지 않는다. 이런 알고리즘이 있는데, OPT 또는 MIN으로 불린다. It is simply this:
+
+Replace the page that will not be used for the longest period of time.
+
+Use of this page-replacement algorithm guarantees the lowest possible page fault rate for a fixed number of frames.
+
+(reference string으로 해보면 이 말이 맞는 걸 보여줌)
+그러나 불행히도 이 optimal page-replacment algorithm은 구현하기 어렵다. refence string의 future knowledge를 알아야 하기 때문이다. (We encountered a similar situation with the SJF CPU-scheduling algorithm in Section 6.3.2.)
+
+### 9.4.4 LRU Page Replacement
+
+If we use the recent past as an approximation of the near future, then we can replace the page that has not been used for the longest period of time. This approach is the **least recently used (LRU) algorithm**.
+
+When a page must be replaced, LRU chooses the page that has not been used for the longest period of time. 우리는 이 전략이 과거로 돌이켜보는 optimal page-replacement algorithm이라고 생각할 수 있다.
+
+LRU 정책은 종종 page-replacement algorithm으로 사용되고, 좋은 것으로 간주된다. 제일 문제는 어떻게 LRU를 구현하는 가이다. 이 알고리즘은 hardware의 상당한 assistance이 필요하다. 마지막 사용으로부터의 지난 시간 순서를 찾는 것이 문제인데, 가능한 구현이 2가지가 있다.
+
+* Counter. 가장 간단한 방법으로 page-table entry에 time-of-use field를 만들어서 사용할 때마다 counter를 증가시킨다. 그러면 smallest time value를 갖는 것이 교체 대상이 된다.
+
+* Stack. double linked list로 구성해서 최근에 사용한 page를 stack에서 꺼내서 맨 위에 위치시킨다. 그러면 stack 가장 아래에 있는 page가 제일 오래전에 쓴 page가 된다.
+
+Like optimal replacement, LRU replacement does not suffer from Belady’s anomaly. Both belong to a class of page-replacement algorithms, called **stack algorithms**, that can never exhibit Belady’s anomaly.
+
+LRU의 구현은 표준 TLB 레지스터 이외의 하드웨어 지원이 없다면 생각할 수 없다. 그리고 clock fields 나 satck을 memory reference마다 update해야만 하기 떄문에 10배 이상 느려질 수도 있다. 메모리 관리를 위한 부하를 이정도까지 감내할 수 있는 시스템은 거의 없다.
+
+### 9.4.5 LRU-Approximation Page Replacement
+
+#### 9.4.5.1 Additional-Reference-Bits Algorithm
+
+#### 9.4.5.2 Second-Chance Algorithm
+
+#### 9.4.5.3 Enhanced Second-Chance Algorithm
+
+
+### 9.4.6 Counting-Based Page Replacement
+
+
+### 9.4.7 Page-Buffering Algorithms
+
+
+### 9.4.8 Applications and Page Replacement
+
+## 9.5 Allocation of Frames
+...
+
+## 9.6 Thrashing
+...
+
+## 9.7 Memory-Mapped Files
+...
+
+## 9.8 Allocating Kernel Memory
+...
+
+## 9.9 Other Considerations
+...
+
+## 9.10 Operating-System Examples
+...
+
+## 9.11 Summary
+...
