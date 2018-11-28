@@ -289,11 +289,30 @@ In certain cases, OS가 buffering을 전혀 없다면 OS의 virtual memory를 �
 이런 문제들로 인해 몇 OS는 어떤 파일시스템의 구조도 갖지 않은 채 a arge sequential array of logical blocks으로 disk partition을 쓰는 기능을 사용한 special program을 제공한다. This array is sometimes called the **raw disk**, and I/O to this array is termed raw I/O. 특정 application인 그들 특정 목적으로 storage service를 구현함으로써 더 효과적일 수 있겠지만, 대부분의 application을 일반적인 file system에서의 성능이 더 낫다는 걸 명심(?)해라.
 
 ## 9.5 Allocation of Frames
-...
 
+allocation issue로 넘어가자. 다양한 프로세스들 중에서 fixed amount의 free memory를 어떻게 할당할 수 있을까? 만약 93 free frames과 two processes를 가졌다면 각 프로세스들은 frame을 얼마나 가질까?
+
+가장 단순한 케이스는 single-user system이다. 메모리 128KB에 1KB pages들로 이루어진 single-user system을 떠올려보자. 이 시스템은 128 frames를 가지고 있다. OS가 35KB를 쓰 93 frames를 유저 프로세스를 위해 남겨놨다. 순수하게 demand paging할 때 93 frames은 free-frame list에 올라와 있을 것이다. user process가 수행하기 시작할때 순차적인 page faults가 발생할 것이다. 첫 93 page faults를 free-frame list에 가져오면 된다. free frame list를 다 쓰면, page-replacement algorithm이 93개의 in-memory page 중에서 하나를 선택해서 94번째와 교체할 것이다. 그리고 프로세스가 죽으면 93 frames은 다시 free-frame list로 돌아간다.
+
+이 simple strategy에 여러 variations이 존재한다.
+
+### 9.5.1 Minimum Number of Frames
+
+Our strategies for the allocation of frames are constrained in various ways. 우리는 page sharing이 있지 않은 이상엔 가용가능한 frame 수의 총합보다 만ㅇ흔 양을 할당할 수 없다. 우리는 또한 적어도 최소 frame number만큼은 할당해야 한다. 후자의 요구사항에 맞춰 자세히 들여다보자.
+
+적어도 최소 number of frames를 할당하는 첫번째 이유는 성능이다. 명백하게도 각각의 프로세스에 할당된 frame의 수가 감소하면, page-fault rate는 증가하고 process execution을 느려진다. 그리고 instruction을 수행하기 전에 page fault가 발생하면, 그 instruction는 재시작해야만 한다. 결과적으로 어떤 single instruction이라도 관련된 page들을 담고 있으려면 충분한 frame을 갖고 있어야 한다.
+
+For example, consider a machine in which all memory-reference instructions may reference only one memory address.
+
+### 9.5.2 Allocation Algorithms
+### 9.5.3 Global versus Local Allocation
+### 9.5.4 Non-Uniform Memory Access
 
 ## 9.6 Thrashing
-...
+### 9.6.1 Cause of Thrashing
+### 9.6.2 Working-Set Model
+### 9.6.3 Page-Fault Frequency
+### 9.6.4 Concluding Remarks
 
 ## 9.7 Memory-Mapped Files
 ...
