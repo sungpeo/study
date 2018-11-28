@@ -231,7 +231,16 @@ LRU의 구현은 표준 TLB 레지스터 이외의 하드웨어 지원이 없다
 
 ### 9.4.5 LRU-Approximation Page Replacement
 
+LRU page replacement 적용 가능한 하드웨어를 제공하는 컴퓨터 시스템들이 어느 정도 있다. 어떤 시스템들은 하드웨어 지원이 전혀 없어서 다른 page-replace algorithms(FIFO 같은)을 써야만 하는 경우도 있다. 그러나 많은 시스템들은 **reference bit**의 형태로 약간의 도움은 주고 있다. page가 read든 write든 지간에 어떤 byte에라도 referenced라면, reference bit은 해당 page에 세팅이 된다. Reference bits는 page tabld에서의 각각의 entry와 관련이 있다.
+
+처음엔, operating system이 모든 bit들을 0으로 세팅한다. 사용자 프로세스가 수행됨으로써, 각 각의 page referenced의 bit는 hardware에 의해 1로 세팅된다. 시간이 조금 지나면, reference bits를 검사해서 사용 순서는 모르더라도 어떤 page가 쓰였는지 안 쓰였는지 여부는 알 수 있다. 이 정보가 LRU replacement와 비슷한 page-replacement algorithm들의 기본이 된다.
+
 #### 9.4.5.1 Additional-Reference-Bits Algorithm
+
+일정 주기마다 reference bits를 기록해서 순서 정보를 얻을 수도 있다. 메모리에 있는 테이블에 page마다 8-bit byte를 보관할 수 있다. 일정 주기마다 (say, every 100 millisencds), a timer interrupt transfers control to the operating system. operating system은 매 페이지마다 reference bit를 하나씩 옮기는데, 8-bit byte에서 high-oerder로 옮기고, 나머지 bit들도 오른쪽으로 하나씩 밀려서 low-order bit가 버려지는 식이다. 이 8-bit shift register는 최근 8번의 periods 간의 page history를 가지고 있다. period마다 한번 이상씩 사용됐다면 11111111이 될테고, 11000100은 01110111보다 더 최근에 사용됐다고 알 수 있다.이 8-bit byte 값을 usigned interger로 변환하면, 가장 낮은 숫자의 page가 LRU page를 의미하므로 교체 대상이 된다. 물론 값이 unique하지는 않을 것이므로, 가장 작은 값 전부를 swap out 해버리거나, 그 중에서 FIFO를 쓰거나 하는 식으로 선택할 수 있다.
+
+물론 shift register에 포함된 비트의 갯수가 can be varied, 
+
 
 #### 9.4.5.2 Second-Chance Algorithm
 
