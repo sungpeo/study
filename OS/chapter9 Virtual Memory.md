@@ -237,26 +237,60 @@ LRU page replacement 적용 가능한 하드웨어를 제공하는 컴퓨터 시
 
 #### 9.4.5.1 Additional-Reference-Bits Algorithm
 
-일정 주기마다 reference bits를 기록해서 순서 정보를 얻을 수도 있다. 메모리에 있는 테이블에 page마다 8-bit byte를 보관할 수 있다. 일정 주기마다 (say, every 100 millisencds), a timer interrupt transfers control to the operating system. operating system은 매 페이지마다 reference bit를 하나씩 옮기는데, 8-bit byte에서 high-oerder로 옮기고, 나머지 bit들도 오른쪽으로 하나씩 밀려서 low-order bit가 버려지는 식이다. 이 8-bit shift register는 최근 8번의 periods 간의 page history를 가지고 있다. period마다 한번 이상씩 사용됐다면 11111111이 될테고, 11000100은 01110111보다 더 최근에 사용됐다고 알 수 있다.이 8-bit byte 값을 usigned interger로 변환하면, 가장 낮은 숫자의 page가 LRU page를 의미하므로 교체 대상이 된다. 물론 값이 unique하지는 않을 것이므로, 가장 작은 값 전부를 swap out 해버리거나, 그 중에서 FIFO를 쓰거나 하는 식으로 선택할 수 있다.
+일정 주기마다 reference bits를 기록해서 추가적으로 순서 정보를 얻을 수도 있다. 메모리에 있는 테이블에 page마다 8-bit byte를 보관할 수 있다. 일정 주기마다 (say, every 100 millisencds), a timer interrupt transfers control to the operating system. operating system은 매 페이지마다 reference bit를 하나씩 옮기는데, 8-bit byte에서 high-oerder로 옮기고, 나머지 bit들도 오른쪽으로 하나씩 밀려서 low-order bit가 버려지는 식이다. 이 8-bit shift register는 최근 8번의 periods 간의 page history를 가지고 있다. period마다 한번 이상씩 사용됐다면 11111111이 될테고, 11000100은 01110111보다 더 최근에 사용됐다고 알 수 있다.이 8-bit byte 값을 usigned interger로 변환하면, 가장 낮은 숫자의 page가 LRU page를 의미하므로 교체 대상이 된다. 물론 값이 unique하지는 않을 것이므로, 가장 작은 값 전부를 swap out 해버리거나, 그 중에서 FIFO를 쓰거나 하는 식으로 선택할 수 있다.
 
-물론 shift register에 포함된 비트의 갯수가 can be varied, 
-
+shift register에 포함된 the number of bits of history가 다양하고, 가능한 빠르게 업데이트하기 위해 값을 선택할 수도 있다. 극단적인 예로 숫자를 0으로 줄이면 reference bit만 남아 있는 셈이다. 이 알고리즘을 **second-chance page-replacement algorithm**이라 한다.
 
 #### 9.4.5.2 Second-Chance Algorithm
 
+second-chance replacement의 기본 알고리즘은 FIFO replacement이다. page가 선택될 때, 우리는 refence bit를 조사한다. 만약 value가 0이면, 이 page에 대한 교체를 진행하고, 1이라면 second chance를 주고 다음 FIFO page를 선택한다. page가 두번째 찬스를 얻을 때 reference bit이 정리되고 arrival time 또한 현재 시간으로 재설정된다. 그러므로 이 페이지는 다른 모든 페이지가 교체될 때(또는 두번째 찬스)까지 교체되지 않는다. 게다가 page의 reference bit가 충분히 자주 세팅이 반복되면, 교체대상에 빼버린다.
+
+second-chance algorithm(**clock** 알고리즘으로도 불리는)을 구현하는 방법 중 하나는 circular queue를 쓰는 것이다. pointer가 다음에 어떤 page가 교체되어야할지 나타내고 있다. a frame이 필요할 때, 그 포인터가 reference bit로 0을 가진 page을 찾을 때까지 진행한다. 진행하는 동안 지나온 페이지의 reference bit을 정리(0)하면서 넘어간다. victim page를 찾으면, page는 교체되고 그 자리에 새로운 페이지를 삽입한다. 최악의 경우는 모든 비트가 세팅된 상태로 전체 큐를 돌면서 모든 페이지에 2번째 찬스를 주게 된다. 이 경우엔 FIFO replacement가 되는 것이다.
+
 #### 9.4.5.3 Enhanced Second-Chance Algorithm
 
+우리는 reference bit과 modify bit를 고려해서 second-chance algorithm을 발전시킬 수 있다. 2개의 비트를 보면 아래아 같은 4가지 클래스(상황)으로 구분할 수 있다.
+1. (0,0) 최근에 사용되지도 않았고, 수정되지 않음 - best page to replace
+2. (0,1) 최근에 쓰이지는 않았지만 변경된 경우 - 교체되려면 수정된 내용으로 쓰여져야 됨.
+3. (1,0) 최근에 쓰였지만 깨끗한 경우(수정되지 않음) - 아마 곧 다시 쓰일 것.
+4. (1,1) 최근에 쓰이고 변경된 경우
+
+page replacement 요청이 오면, clock algorithm과 같은 방식을 쓴다. 그러나 어떤 페이지의 reference bit가 1인지 찾는 것 대신에, 해당 페이지가 어떤 클래스에 속하는지 판단한다.
+Notice that we may have to scan the circular queue several times before we find a page to be replaced. The major difference between this algorithm and the simpler clock algorithm is that here we give preference to those pages that have been modified in order to reduce the number of I/Os required.
 
 ### 9.4.6 Counting-Based Page Replacement
 
+page replacement에 사용할 수 있는 다른 알고리즘들도 많다. 예를 들어 우리는 reference의 수의 counter를 페이지별로 가지면서 아래 두가지 방법을 개발할 수 있다.
+
+ 1. **Least Freqently Used**(**LFU**)는 가장 카운트가 적은 page가 교체 대상이 될 것이다. 현재 사용되고 있는 page는 reference count가 클 수밖에 없기 때문이다. 그러나 알려진 문제로 초반에만 많이 쓰이고 뒤에서 쓰이지 않는 경우에도 메모리에 남게 되는 점이 있다. 하나의 해결책으로 regular interval마다 카운트 bit를 오른쪽으로 하나씩 이동시키는 방법이 있다. 평균 사용 횟수가 지수적으로 줄게 될 것이다.
+
+2. **Most Frequenntly Used**(**MFU**) page-replacement algorithm is based on the argument that the page with the smallest count was probably just brought in and has yet to be used. //걍 반대
+
+어쨋든 둘다 구현하기도 어렵고 OPT replacement에 가깝지도 않아서 일상적으로 사용되진 않는다.
 
 ### 9.4.7 Page-Buffering Algorithms
 
+특정 page-replacement algorithm을 위해서 other procedures도 종종 쓰인다. 예를 들면, 시스템들은 일반적으로 free frame pool을 가지고 있다. page fault가 일어났을 때 그 중에 victim  frame을 선택한다. 그러나 victim이 written out되기 전에 필요한 page가 free frame으로 읽어진다. 이 프로시져는 victim page가 쓰여지길 기다리지 않고, 가능한 빨리 그 프로세스를 재시작하도록 한다. 그리고 victim이 나중에 다 쓰여질 때, 그 frame은 free-frame pool에 추가된다. (= 필요한 page 읽는 걸 먼저하고, victim page write out을 비동기로)
+
+이 아이디어의 확장이 modified pages 목록을 유지하는 것이다. paging device가 idle이면 언제나, 수정된 페이지가 선택되어 disk에 쓰여진다. 그리고 modify bit는 reset된다. 이 방식은 replacement를 위해 page를 선택했을 때 clear해서 disk에 쓸 필요가 없을 확률을 높여준다.
+
+또 다른 modification은 free frame pool은 유지하되 어떤 page가 프레임에 들어있는지 기억하고 있는 것이다. frame이 disk에 쓰일 때 frame 내용은 변하지 않으므로, 그 frame이 다른 용도로 쓰이기 전에 필요해지면 old page는 free-frame pool에다가 바로 가져가다 쓸 수 있다. 이 경우엔 I/O가 일어나지 않는다. page fault가 일어나면 먼저 필요한 page가 free-frame pool에 있는지부터 확인한다. 그렇지 않으면 free frame을 하나를 선택해서 거기에 내용을 읽어 들어야 한다.
+
+이 테크닉은 VAX/VMS systm에서 FIFO replacement algorithm과 같이 쓰인다. FIFO replacement algorithm이 실수로 아직 사용 중인 page를 교체할 때, 해당 page는 free-frame에서 빠르게 검색되어 사용되므로, I/O가 필요하지 않다. free-frame buffer는 상대적으로 구리지만 간단한 FIFO replacement algorithm에 대한 protection을 제공한다. 이 방법은 VAX 초기 버전이 reference bit을 제대로 구현하지 않았기 때문에 필요하다. 
+
+Unix system의 몇 버전들은 이 메서드와 second-chance algorithm을 함께 사용했다. 이 방법은 잘못된 victim이 선택되었을 때에 발생하는 페널티를 줄이기 위한 용도로 어느 page-replacement algorithm이든지 간에 확장하여 사용할 수 있다.
 
 ### 9.4.8 Applications and Page Replacement
 
+In certain cases, OS가 buffering을 전혀 없다면 OS의 virtual memory를 통한 application의 data 접근은 성능이 안 좋다. 전형적인 예제로 database가 있는데, 그것은 직접 memory management와 I/O buffering을 제공한다. 이런 application들은 일반 목적의 OS 알고리즘보다 스스로 메모리와 디스크 사용을 하는 것이 더 낫다는 것을 이해하고 있다. 그러나 만약 OS가 I/O buffering을 하고 application도 하고 있다면, I/O 사용을 위해 드는 메모리가 두배가 된다.
+
+다른 예시로, data warehouses 빈번하게 requential disk read, 후에 computations and writes가 일어난다. LRU 알고리즘은 old page를 지우고 새로운 것들을 보존하고 있을 것이다. 그러나 application을 새로운 것보다는 older page을 읽으려고 할 것이다.(다시 sequential reads가 발생). 여기서는 MFU가 LRU보다 효과적일 것이다.
+
+이런 문제들로 인해 몇 OS는 어떤 파일시스템의 구조도 갖지 않은 채 a arge sequential array of logical blocks으로 disk partition을 쓰는 기능을 사용한 special program을 제공한다. This array is sometimes called the **raw disk**, and I/O to this array is termed raw I/O. 특정 application인 그들 특정 목적으로 storage service를 구현함으로써 더 효과적일 수 있겠지만, 대부분의 application을 일반적인 file system에서의 성능이 더 낫다는 걸 명심(?)해라.
+
 ## 9.5 Allocation of Frames
 ...
+
 
 ## 9.6 Thrashing
 ...
@@ -275,3 +309,4 @@ LRU page replacement 적용 가능한 하드웨어를 제공하는 컴퓨터 시
 
 ## 9.11 Summary
 ...
+
