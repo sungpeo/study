@@ -1,6 +1,6 @@
 # Chapter9. Virtual Memory
 
-Virtual memory는 process가 온전히 memory에 있는 것이 아니더라도, 수행시킬 수 있도록 해준다. 주요 이점 중 하나가 물리 메모리보다 큰 프로그램을 허용할 수 있다는 것이다. 이 테크닉을 통해 개발자들은 메모리 제한에 대한 걱정을 덜어준다. Virtual memory는 또한 프로세스들이 파일을 공유 및 shared memory 구현을 쉽게 할 수 있도록 한다
+Virtual memory는 process가 온전히 memory에 있는 것이 아니더라도, 수행시킬 수 있도록 해준다. 주요 이점 중 하나가 물리 메모리보다 큰 프로그램을 허용할 수 있다는 것이다. 이 테크닉을 통해 개발자들의 메모리 제한에 대한 걱정을 덜어준다. Virtual memory는 또한 프로세스들이 파일 공유하는 것 및 shared memory 구현을 쉽게 할 수 있도록 한다
 그러나 virtual memory를 구현하는 것이 쉽지 않으며, 무분별하게 사용할 경우 심각한 성능 저하를 일으킬 수 있다. 이번 챕터에서는 가상 메모리에서 paging 사용과 복잡도 및 비용에 대해 알아보도록 하자.
 
 ## Chapter Objectives
@@ -20,9 +20,9 @@ one basic requirement: The instructions being executed must be in physical memor
 instructions를 실행시키기 위해서 물리 메모리에 있어야한다는 요구사항은 필요하고 맞는 말 같아 보인다. 사실 보면, 많은 경우에 프로그램 전체가 물리 메모리에 있을 필요는 없다.
 예를 들면,
 
-* 비일상적인 에러 상태를 처리하는 코드를 포함하는 프로그램이 있다. 거의 일어나지 않는 에러일땐, 해당 코드가 거의 실행되는 경우가 없다.
+* 일반적으로 일어나지 않는 에러 상태를 처리하는 코드를 포함하는 프로그램을 생각해보자. 일어나지 않는 에러일수록 해당 처리 코드가 실행될 일이 없다.
 * array, list들이 실제 사용하는 메모리보다 크게 할당된 경우를 들 수 있다.
-* 거의 사용되지 않는 특정 옵션이나 기능들이 있을 수 있다. 
+* 거의 사용되지 않는 특정 옵션이나 기능들이 있을 수 있다.
 
  일부만을 메모리에 올려 프로그램을 실행시킬 수 있다면 많은 이점을 가져다줄 것이다.
 
@@ -30,7 +30,7 @@ instructions를 실행시키기 위해서 물리 메모리에 있어야한다는
 * 각각의 사용자 프로그램이 물리 메모리를 적게 사용하므로, 더 많은 프로그램들이 동시에 처리될 수 있다. CPU의 사용률과 throughput은 증가하지만 response time이나 trunaround time은 변하지 않는다.
 * 사용자 프로그램을 메모리에 올리거나 swap하는 I/O가 적어지므로, 각각의 프로그램을 더 빠르게 수행될 것이다.
 
-**Virtual memory**는 사용자가 물리 메모리를 인지하는 방식인 logical memory의 분리(separation)를 수반한다. 이 분리를 통해, 사용가능한 물리 메모리가 적은 상황에서도 프로그래머에게 매우 큰 가상 메모리를 사용할 수 있다. 가상 메모리는 프로그래밍을 훨씬 쉽게 만든다. 개발자가 사용 가능한 물리 메모리에 대한 고민 없이, 프로그램의 주요 로직에만 집중할 수 있도록 해주기 때문이다.
+**Virtual memory**는 사용자가 물리 메모리를 인지하는 방식인 logical memory의 분리(separation)를 수반한다. 이 분리를 통해, 사용가능한 물리 메모리가 적은 상황에서도 프로그래머는 매우 큰 가상 메모리를 사용할 수 있다. 가상 메모리는 프로그래밍을 훨씬 쉽게 만든다. 개발자가 사용 가능한 물리 메모리에 대한 고민 없이, 프로그램의 주요 로직에만 집중할 수 있도록 해주기 때문이다.
 
 프로세스의 **virtual address space**은 프로세스가 메모리에 저장되는 방법에 대한 논리적 (또는 가상의) 관점을 나타낸다. 프로세스는 특정 logical address (0)에서 시작하며 Figure 9.2에서 보이는 것처럼 인접한 메모리에 존재한다.
 8장에서 봤듯이, 물리 메모리는 page frame들로 구성되고, 해당 physical page frame들은 근접하여 할당되지는 않을 수도 있다. memory에서 logic page와 physical page를 연결시켜주는 건 memory management unit (MMU)에 달려있다.
@@ -40,48 +40,53 @@ Figure 9.2에서 보듯이, 우리는 heap 위의 공간을 활용해서 dynamic
 
 * shared object를 virtual address space에 매핑함으로써, 시스템 라이브러리들은 여러 프로세스가 공유할 수 있다. 프로세스들은 각자의 virtual address space로 라이브러리에서 접근한다고 생각하겠지만, 라이브러리를 포함하는 physical memory의 page는 모든 프로세스들로 공유되고 있는 것이다. 일반적으로 라이브러리 매핑은 read-only로 매핑된다.
 
-* 비슷하게 프로세스들은 메모리를 공유할 수 있다. 3장을 떠올려보면 공유 메모리가 2개 이상의 프로세스들이 커뮤니케이션할 수 있는 통로가 되었다. virtual memory는 하나의 프로세서그ㅏ 메모리 region을 만들고 그것을 다른 프로세스들과 공유할 수 있게 한다. 이 region을 공유하는 프로세스들은 자신의 virtual address space의 일부로 간주하고 사용한다. 그러나 실제 physical pages들은 공유되고 있는 것이다. (Figure 9.3)
+* 비슷하게 프로세스들은 메모리를 공유할 수 있다. 3장을 떠올려보면 공유 메모리가 2개 이상의 프로세스들이 커뮤니케이션할 수 있는 통로가 되었다. virtual memory는 하나의 프로세스가 메모리 region을 만들고 그것을 다른 프로세스들과 공유할 수 있게 한다. 이 region을 공유하는 프로세스들은 자신의 virtual address space의 일부로 간주하고 사용한다. 그러나 실제 physical pages들은 공유되고 있는 것이다. (Figure 9.3)
 
-* pages는 프로세스가 fork system call을 통해 생성된 경우에도 공유해서 사용된다. 
+* pages는 프로세스가 fork system call을 통해 생성된 경우에도 공유해서 사용된다.
 
 virtual memory에 대해 더 알아볼 것인데, 먼저 implementin부터 살펴보자.
 
 ## 9.2 Demand Paging
 
-디스크로부터 메모리에 execuetable program을 로딩하는 방법을 생각해보자. 첫번째로는 한번에 모든 프로그램을 physical memory에 올리는 것이다. 처음부터 모든 프로그램이 필요하지 않을 수 있다. 사용자가 선택 가능한 옵션이 있을 수 있는데, 이 방법은 모든 옵션을 로딩하게 된다. 
-다른 대안으로 필요한 만큼 로딩하는 방법이 있다. **demand paging**이라고 알려져 있고, virtual memory system에서 가장 흔히 사용되는 방법이다. access 하지 않는 pages는 physical memory에 로딩될 일이 없는 것이다. 
+디스크로부터 메모리에 execuetable program을 로딩하는 방법을 생각해보자. 첫번째로는 한번에 모든 프로그램을 physical memory에 올리는 것이다. 처음부터 모든 프로그램이 필요하지 않을 수 있다. 사용자가 선택 가능한 옵션이 있을 수 있는데, 이 방법은 모든 옵션을 로딩하게 된다.
+다른 대안으로 필요한 만큼 로딩하는 방법이 있다. **demand paging**이라고 알려져 있고, virtual memory system에서 가장 흔히 사용되는 방법이다. access 하지 않는 pages는 physical memory에 로딩될 일이 없는 것이다.
 
-demand-paging system은 process가 secondary memory(usally a disk)에 있을 때의 paging system with swapping과 유사하다. 프로세스를 실행시코자가 할때 메모리에 swap을 하게 되는데, 전체 프로세스를 swap하기보다는 **lazy swapper**를 사용한다. lazy swapper는 page가 필요해지기 전까지는 절대 page를 swap하지 않는다. demand-paging system의 관점에서는 "swapper"라는 용어 사용이 기술적으로 맞지 않다. 보통 swapper는 프로세스 전체를 조작하는 반면에, **page**는 프로세스의 개별 page에 연관되어 있으므로, depand paging과 연관시켜 볼 때는 "pager"라 하는 것이 올바른 표현이다.
+demand-paging system은 process가 secondary memory(usally a disk)에 있을 때의 paging system with swapping과 유사하다. 프로세스를 실행코자 할때 메모리에 swap을 하게 되는데, 전체 프로세스를 swap하기보다는 **lazy swapper**를 사용한다. lazy swapper는 page가 필요해지기 전까지는 절대 page를 swap하지 않는다. demand-paging system의 관점에서는 "swapper"라는 용어 사용이 기술적으로 맞지 않다. 보통 swapper는 프로세스 전체를 조작하는 반면에, **page**는 프로세스의 개별 page에 연관되어 있으므로, depand paging과 연관시켜 볼 때는 "pager"라 하는 것이 올바른 표현이다.
   
 ### 9.2.1 Basic Concepts
 
 process가 swap in되었을 때, the pager는 어떤 pages들이 사용될 것인지 추측한다. 그래서 모든 프로세스를 swapping하지 않고, 그 pages만 memory로 불러온다. 사용하지 않을 page를 메모리로 읽는 작업을 피함으로써, swap time과 physical memory 사용량을 줄인다.
-이 방식을 사용하면 메모리에있는 페이지와 디스크에있는 페이지를 구별 할 수있는 하드웨어 지원이 필요하다. Section 8.5.3에 나왔던 valid-invalid bit를 여기서 사용할 수 있다. 그러나 이번엔 이 bit가 "valid"로 세팅되었을 때 의미는 연관 page가 legal이면서 in memory라는 뜻이다. 그리고 "invalid"는 해당 page가 valid하지 않거나 (즉, 프로세서의 logical address space에 있지 않다.), valid하긴 하나 디스크에 있다는 뜻이다. = 메모리에 있는 page에 대한 page-table entry는 평소처럼 세팅되지만, 현재 메모리에 있지 않은 page에 대한 entry는 invalid로 마킹되거나 disk상의 page 주소를 포함한다.
-page를 invalid로 마킹하는 건 page에 access 시도만 없다면 상관 없다. (no effect). 필요한 page들만 제대로 예측해서 프로세스가 수행된다면 모든 페이지를 올려놓고 하는 것처럼 정확히 수행될 것이다. **memory resident** page에 접근하는 것은 물론 프로세스 수행이 정상적으로 진행된다.
-그런데 만약 메모리로 가져오지 않은 page에 대한 access를 시도하면 어떤 일이 벌어질까? invalid 마크된 page로의 access는 **page fault**를 유발한다. Paging hardware는 page table을 통해 address를 번역하는 과정에서 invalid bit가 세팅되어 있따는 것을 알아차릴 것이고, operating system에 trap을 발생시킬 것이다. 이 trap은 필요한 page를 memory로 가져오는 것에 대한 실패의 결과이다. 이 page fault를 다루는 과정은 아래와 같다. (Figure 9.6)
+이 방식을 사용하면 메모리에있는 페이지와 디스크에있는 페이지를 구별 할 수있는 하드웨어 지원이 필요하다. Section 8.5.3에 나왔던 valid-invalid bit를 여기서 사용할 수 있다. 그러나 이번엔 이 bit가 "valid"로 세팅되었을 때 의미는 연관 page가 legal이면서 in memory라는 뜻이다. 그리고 "invalid"는 해당 page가 valid하지 않거나 (즉, 프로세스의 logical address space에 있지 않다.), valid하긴 하나 디스크에 있다는 뜻이다. = 메모리에 있는 page에 대한 page-table entry는 평소처럼 세팅되지만, 현재 메모리에 있지 않은 page에 대한 entry는 invalid로 마킹되거나 disk상의 page 주소를 포함한다.
+page를 invalid로 마킹하는 건 page에 access 시도만 없다면 상관 없다. (no effect). 필요한 page들만 제대로 예측해서 프로세스가 수행된다면 모든 페이지를 올려놓고 하는 것처럼 정확히 수행될 것이다. 그 프로세스는 **memory resident** page에 접근하는 것은 물론 프로세스 수행이 정상적으로 진행된다.
+그런데 만약 메모리로 가져오지 않은 page에 대한 access를 시도하면 어떤 일이 벌어질까? invalid 마크된 page로의 access는 **page fault**를 유발한다. Paging hardware는 page table을 통해 address를 번역하는 과정에서 invalid bit가 세팅되어 있다는 것을 알아차릴 것이고, operating system에 trap을 발생시킬 것이다. 이 trap은 필요한 page를 memory로 가져오는 것에 대한 실패의 결과이다. 이 page fault를 다루는 과정은 아래와 같다. (Figure 9.6)
 
-1. 이 프로세스가 reference가 valid/invalid memory access인지 결정하기 위해,internal table(process control block과 함께 가지고 있는)을 먼저 체크한다.
-2. reference가 invalid라면, 프로세스를 종료한다. valid이긴 하나, 아직 page로 가져오지 않았다면, we not page it in.
+1. 이 프로세스가 reference가 valid/invalid memory access인지 결정하기 위해, internal table(process control block과 함께 가지고 있는)을 먼저 체크한다.
+2. reference가 invalid라면, 프로세스를 종료한다. valid이긴 하나, 아직 page로 가져오지 않았다면, we now page it in.
 3. We find a free frame (by taking one from the free-frame list, for example).
 4. 필요한 page를 새롭게 할당된 frame에 읽어들이도록 disk operation을 스케줄한다.
 5. disk read가 완료되면, 프로세스와 가지고 있는 internal table을 수정해서 이제 메모리에 들어온 page를 나타내도록 한다.
-6. trap으로 interrupted 걸린 intrcution을 재시작한다. 프로세스는 문제의 page에 원래부터 메모리에 있던 것처럼 접근할 수 있다.
+6. trap으로 interrupted 걸린 instrcution을 재시작한다. 프로세스는 문제의 page에 원래부터 메모리에 있던 것처럼 접근할 수 있다.
 
 극단적인 경우 메모리에 page가 전혀 없는 process를 시작시킬 수도 있다. operating system이 process의 첫번째 instruction에 대해 instruction pointer로 set을 했는데, which in on a non-memory-resident page라면, 그 프로세스는 즉시 faults for the page가 발생한다. 이 page를 memory로 옮기고 나면, 프로세스는 continues to execute, faulting as necessary until every page that it needs is in memory. 다 가져오고 나면, 더이상 fault 없이 수행될 수 있다. 이 방법이 **pure demand paging**이며, 필요할 때까지는 page를 메모리에 절대 올리지 않는다.
-이이론적으로 some program은 instruction execution마다 새로운 메모리 페이지에 대한 접근이 필요하고, 매번 여러개의 page를 요구할 수 있다. 이러면 아마 성능이 구릴 것이다. 다행히도 실행 중인 프로로세스를 분석해보면 이런 상황은 여간해선 일어나지 않는 것을 알 수 있다. 프로그램들은 **locality of reference**를 가지려는 경향이 있다. Section9.6.1에 묘사될 내용인데, 어쨋든 그 결과 demand pagin으로부터 쓸만한 성능이 나오게 된다. 
+이론적으로 some program은 instruction execution마다 새로운 메모리 페이지에 대한 접근이 필요하고, 매번 여러개의 page를 요구할 수 있다. 이러면 아마 성능이 구릴 것이다. 다행히도 실행 중인 프로로세스를 분석해보면 이런 상황은 여간해선 일어나지 않는 것을 알 수 있다. 프로그램들은 **locality of reference**를 가지려는 경향이 있다. Section9.6.1에 묘사될 내용인데, 어쨋든 그 결과 demand pagin으로부터 쓸만한 성능이 나오게 된다.
 
 demand paging을 지원하는 hardware는 paging과 swapping을 지원하는 것과 동일하다.
- * **Page table.** This table has the ability to mark an entry invalid through a valid–invalid bit or a special value of protection bits.
 
- * **Secondary memory.** This memory holds those pages that are not present in main memory. The secondary memory is usually a high-speed disk. It is known as the swap device, and the section of disk used for this purpose is known as swap space. Swap-space allocation is discussed in Chapter 10.
+* **Page table.** This table has the ability to mark an entry invalid through a valid–invalid bit or a special value of protection bits.
+
+* **Secondary memory.** This memory holds those pages that are not present in main memory. The secondary memory is usually a high-speed disk. It is known as the swap device, and the section of disk used for this purpose is known as swap space. Swap-space allocation is discussed in Chapter 10.
 
 demand paging을 위한 중요한 requirement는 어떤 instruction이든 page fault 이후에 재시작할 수 있어야 한다는 것이다. page fault가 발생했을 때 인터럽트된 프로세스의 상태(registers, condition code, instruction counter)를 저장하기 때문에, 필요한 page가 메모리에 새로 올라온 것을 제외하고는 완전히 같은 place와 상태로 프로세스를 재시작시킬 수 있어야 한다. 대부분의 경우 이 요구사항은 만족시키기 쉽다. page fault는 어떤 memory reference든 발생할 수 있다. page fault가 instruction fetch에서 발생했다면, 우리는 해당 instruction을 다시 fetching함으로써 재시작할 수 있다. 만약 page fault가 operand를 fetching하는 중에 발생했다면, instruction 다시 fetch하고 decode하고 난 후, operand를 fetch해야 한다.
 
 (ADD 예시, 마지막 step에서의 page fault로 인해 process를 처음부터 재수행)
 
 The major difficulty arises when one instruction may modify several different locations. For example, consider the IBM System 360/370 MVC (move character) instruction, which can move up to 256 bytes from one location to another (possibly overlapping) location. If either block (source or destination) straddles a page boundary, a page fault might occur after the move is partially done. In addition, if the source and destination blocks overlap, the source block may have been modified, in which case we cannot simply restart the instruction.
-This problem can be solved in two different ways. In one solution, the microcode computes and attempts to access both ends of both blocks. If a page fault is going to occur, it will happen at this step, before anything is modified. The move can then take place; we know that no page fault can occur, since all the relevant pages are in memory. The other solution uses temporary registers to hold the values of overwritten locations. If there is a page fault, all the old values are written back into memory before the trap occurs. This action restores memory to its state before the instruction was started, so that the instruction can be repeated.
-이것이 demand paging을 위해 paging을 추가하여 생기는 유일한 아키텍처 문제는 아니지만, 그것(?)은 수반된 몇가지 어려움을 나타낸다. 
+
+This problem can be solved in two different ways. In one solution, the microcode computes and attempts to access both ends of both blocks. If a page fault is going to occur, it will happen at this step, before anything is modified. The move can then take place; we know that no page fault can occur, since all the relevant pages are in memory.
+
+The other solution uses temporary registers to hold the values of overwritten locations. If there is a page fault, all the old values are written back into memory before the trap occurs. This action restores memory to its state before the instruction was started, so that the instruction can be repeated.
+
+이것이 demand paging을 위해 paging을 추가하여 생기는 유일한 아키텍처 문제는 아니지만, 그것(?)은 수반된 몇가지 어려움을 설명한다. Paging은 CPU와 memory 사이에 추가되고, user process에 투명한 상태여야만 한다. 그래서 사람들은 종종 pagin이 어느 시스템에든 넣을 수 있겠다고 생각한다. 이 추측이 page fault가 곧 fatal error임을 의미하는 non-demand-paging 환경에서는 사실이지만, page fault가 단지 추가적으로 메모리로 옮기는 과정인 환경에서는 사실이 아니다.
 
 9.2.2 Performance of Demand Paging
 
@@ -119,8 +124,8 @@ hundred instructions. These tasks may take from 1 to 100 microseconds each. The 
 
 With an average page-fault service time of 8 milliseconds and a memory- access time of 200 nanoseconds, the effective access time in nanoseconds is
 
-```
-effective access time 
+``` calculation
+effective access time
 = (1 − p) × (200) + p (8 milliseconds)
 = (1 − p) × 200 + p × 8,000,000
 = 200 + 7,999,800 × p.
@@ -128,8 +133,8 @@ effective access time
 
 We see, then, that the effective access time is directly proportional to the **page-fault rate**. If one access out of 1,000 causes a page fault, the effective access time is 8.2 microseconds. The computer will be slowed down by a factor of 40 because of demand paging! If we want performance degradation to be less than 10 percent, we need to keep the probability of page faults at the following level:
 
-```
- 220 > 200 + 7,999,800 × p, 
+``` calculation
+ 220 > 200 + 7,999,800 × p,
  20 > 7,999,800 × p,
  p < 0.0000025.
 ```
@@ -137,7 +142,7 @@ We see, then, that the effective access time is directly proportional to the **p
 That is, to keep the slowdown due to paging at a reasonable level, we can allow fewer than one memory access out of 399,990 to page-fault. In sum, it is important to keep the page-fault rate low in a demand-paging system. Otherwise, the effective access time increases, slowing process execution dramatically.
 
 demand paging 의 다른 측면으로 swap space를 핸들링하고 사용한다는 것이다. swap space에 대한 disk I/O는 file system보다는 일반적으로 빠르다. 훨씬 큰 block 단위로 allocate을 하고, file lookups과 indirect allocation method를 사용하지 않기 때문이다. 그래서 전체 file image를 process startup할 때 swap space에 넣어두고 swap space로부터 demand pagin을 수행한다. 다른 방법(option)으로는 초기 demand pages는 file system에서 수행하고, 이후에 page를 쓸때는 swap을 사용한다. 이 접근 방법은 정말 필요한 page들만 file system에서 읽어들여 사용하고 이후로의 paging은 swap space에서 수행하도록 한다.
-어떤 시스템들은 binary files을 대상으로 하는 demand paging에 사용되는 swap space의 크기를 제한하려고 시도한다. 이런 파일에 대한 demand pages는 파일시스템에서 바로 가져와서 사용된다. 그러나 page relacement가 호출되며느 이 frames은 간단히 overwrite될 수 있다. 그리고 그 page가 다시 필요하면 다시 file system에서 불러올 수 있다. 이 접근방법을 사용함으로써, file system은 backing store로써의 역할을 한다. swap space는 여전히 파일이 아닌 page를 위해 사용된다. 이 page들은 process를 위한 stack과 heap을 포함하고 있다. 이 방법은 Solaris와 BSD UNIX와 같은 여러 시스템들에서 좋은 compromise가 되고 있다.
+어떤 시스템들은 binary files을 대상으로 하는 demand paging에 사용되는 swap space의 크기를 제한하려고 시도한다. 이런 파일에 대한 demand pages는 파일시스템에서 바로 가져와서 사용된다. 그러나 page relacement가 호출되면 이 frames은 간단히 overwrite될 수 있다. 그리고 그 page가 다시 필요하면 다시 file system에서 불러올 수 있다. 이 접근방법을 사용함으로써, file system은 backing store로써의 역할을 한다. swap space는 여전히 파일이 아닌 page를 위해 사용된다. 이 page들은 process를 위한 stack과 heap을 포함하고 있다. 이 방법은 Solaris와 BSD UNIX와 같은 여러 시스템들에서 좋은 compromise가 되고 있다.
 모바일 시스템은 기본적으로 swapping을 지원하지 않는다. 대신, file system으로부터의 demand-page를 지원하며, 만약 메모리가 제약이 되면, application의 읽기 전용 page(such as code)를 회수한다. 이런 data는 나중에 필요하면 파일 시스템으로부터 demand-paged될 수 있다. iOS에서는 알수없는 memory pages들도 절대 application으로부터 회수되지 않는다.
 
 ## 9.3 Copy-on-Write
@@ -165,7 +170,7 @@ The operating system could instead swap out a process, freeing all its frames an
 
 ### 9.4.1 Basic Page Relacement
 
-Page replacement는 다음과 같은 접근방법을 따른다. free인 frame이 없으면, 현재 사용되지 않는 것을 찾아서 해제시킨다. frame의 내용을 swap space에 쓰고, page table을 수정해서 해당 page가 더이상 메모리가 없다고 표시한다. (Figure 9.10). 이제 해제된 frame을 process faulted를 위해 홀딩하고 있는다. page-fault service routine을 수정해서 page replacement를 포함하도록 하자.
+Page replacement는 다음과 같은 접근방법을 따른다. free인 frame이 없으면, 현재 사용되지 않는 것을 찾아서 해제시킨다. frame의 내용을 swap space에 쓰고, page table을 수정해서 해당 page가 더이상 메모리가 없다고 표시한다. (Figure 9.10). 이제 해제된 frame을 page for which the process faulted를 hold하는 데 사용한다. page-fault service routine을 수정해서 page replacement를 포함하도록 하자.
 
 1. 디스크에서 필요한 page의 위치를 찾는다.
 2. free frame을 찾는다.
@@ -176,21 +181,24 @@ Page replacement는 다음과 같은 접근방법을 따른다. free인 frame이
 4. page fault가 발생한 데의 user process를 이어간다.
 
 Notice that, free frame이 없다면, 2개의 page transfer가 필요하다. (one out and one in). 이 상황은 page-fault service time을 2배로 증가시키며, 그에 따라 access time도 늘어난다.
- 우리는 이 overhead를 **modify bit (or dirty bit)**을 사용해서 줄일 수 있다. 이 방법이 사용될 때, 각각의 page나 frame은 하드웨어에 modify bit를 하나씩 가지고 있다. page의 modify bit는 page에 어느 byte가 쓰여졌던 지 상관 없이 언제든 하드웨어로부터 세팅되어, page가 수정됐음을 나타낸다. replacement를 위해 page를 선택할 때 modify bit 을 검토한다. bit가 세팅되어 있다면, disk로부터 읽혀진 후에 수정됐음을 알 수 있다. 이런 경우, page를 disk에 반드시 써야한다. 그러나, 만약 modify bit가 세팅되지 않은 경우엔 disk에서 읽은 후 메모리에서 수정이 없었던 것이고, 그러므로 disk에 다시 쓰지 않아도 된다. 이미 disk에 있으니까. 이 방법은 또한 read-only pages에도 적용된다. (for example, pages of binary code). 그런 page들은 수정될 수 없다. 그래서 필요한 순간이 오면 버리면 된다. 이 방법은 현저하게 page fault를 service하는 데 필요한 시간을 줄일 수 있다. page가 수정되지 않았다면, I/O 시간이 절반으로 줄어들기 때문이다. 
 
- Page replacement is basic to demand paging. logical physical memory를 분리하고, 이 메커니즘을 통해 많은 양의 virtual memory를 작은 physical memory 위에서도 제공할 수 있게 된다. demand paging 없이 user addresses are mapped into physical addresses, and the two sets of addresses can be different. 모든 프로세스의 page가 physical memory에 있어야만 한다. 그러나 demand paging을 쓰면, logical address space가 더이상 physical memory에 제한되지 않는다. 20개의 page를 가진 user process가 하나 있다면, demand paging과 replacement algorithm을 사용해서 10개의 frame으로 수행할 수 있다. If a page that has been modified is to be replaced, its contents are copied to the disk. A later reference to that page will cause a page fault. At that time, the page will be brought back into memory, perhaps replacing some other page in the process.
+우리는 이 overhead를 **modify bit (or dirty bit)**을 사용해서 줄일 수 있다. 이 방법이 사용될 때, 각각의 page나 frame은 하드웨어에 modify bit를 하나씩 가지고 있다. page의 modify bit는 page에 어느 byte가 쓰여졌던 지 상관 없이 언제든 하드웨어로부터 세팅되어, page가 수정됐음을 나타낸다. replacement를 위해 page를 선택할 때 modify bit 을 검토한다. bit가 세팅되어 있다면, disk로부터 읽혀진 후에 수정됐음을 알 수 있다. 이런 경우, page를 disk에 반드시 써야한다. 그러나, 만약 modify bit가 세팅되지 않은 경우엔 disk에서 읽은 후 메모리에서 수정이 없었던 것이고, 그러므로 disk에 다시 쓰지 않아도 된다. 이미 disk에 있으니까. 이 방법은 또한 read-only pages에도 적용된다. (for example, pages of binary code). 그런 page들은 수정될 수 없다. 그래서 필요한 순간이 오면 버리면 된다. 이 방법은 현저하게 page fault를 service하는 데 필요한 시간을 줄일 수 있다. page가 수정되지 않았다면, I/O 시간이 절반으로 줄어들기 때문이다.
 
- demand paging을 구현하려면 해결해야하는 2가지 문제가 있다. 반드시 ***frame-allocation algorithm**과 **page-replacement algorithm**을 개발해야만 한다. 메모리에 여러 프로세스가 있을 때 frame을 process마다 얼마나 할당할 것인지, 그리고 page replacement가 필요할 때 어떤 frame을 교체시킬 것인지를 선택해야 하기 때문이다. 이 문제를 풀기 위한 적절한 알고리즘을 설계하는 것은 중요한 업무이다. 왜냐하면 disk I/O가 매우 비싼 작업이기 때문이다. demand-paging methods에서 약간만 향상이 되더라도 시스템 성능에 큰 도움이 될 정도이다.
+Page replacement is basic to demand paging. logical physical memory를 분리하고, 이 메커니즘을 통해 많은 양의 virtual memory를 작은 physical memory 위에서도 제공할 수 있게 된다. demand paging 없이 user addresses are mapped into physical addresses, and the two sets of addresses can be different. 모든 프로세스의 page가 physical memory에 있어야만 한다. 그러나 demand paging을 쓰면, logical address space가 더이상 physical memory에 제한되지 않는다. 20개의 page를 가진 user process가 하나 있다면, demand paging과 replacement algorithm을 사용해서 10개의 frame으로 수행할 수 있다. If a page that has been modified is to be replaced, its contents are copied to the disk. A later reference to that page will cause a page fault. At that time, the page will be brought back into memory, perhaps replacing some other page in the process.
+
+demand paging을 구현하려면 해결해야하는 2가지 문제가 있다. 반드시 **frame-allocation algorithm**과 **page-replacement algorithm**을 개발해야만 한다. 메모리에 여러 프로세스가 있을 때 frame을 process마다 얼마나 할당할 것인지, 그리고 page replacement가 필요할 때 어떤 frame을 교체시킬 것인지를 선택해야 하기 때문이다. 이 문제를 풀기 위한 적절한 알고리즘을 설계하는 것은 중요한 업무이다. 왜냐하면 disk I/O가 매우 비싼 작업이기 때문이다. demand-paging methods에서 약간만 향상이 되더라도 시스템 성능에 큰 도움이 될 정도이다.
 
 There are many different page-replacement algorithms. Every operating system probably has its own replacement scheme. How do we select a particular replacement algorithm? In general, we want the one with the lowest page-fault rate.
 
-우리는 알고리즘을 특정 string of memory reference에서 실행하고 page fault 수를 계산하여 알고리즘을 평가한다. The string of memory references is called a **reference string**. 우리는 reference string을 인위적으로 생성할 수 있다, 또는 주어진 시스템을 추적하고 각각의 memory reference의 주소를 기록할 수 있다. 후자의 경우 매우 큰 데이터가 생성된다. (ont the order of 1 million addresses per second). 이 숫자를 줄이기 위해 우리는 2개의 fact를 사용한다.
- 
+우리는 알고리즘을 특정 string of memory reference에서 실행하고 page fault 수를 계산하여 알고리즘을 평가한다. The string of memory references is called a **reference string**. 우리는 reference string을 인위적으로 생성할 수 있다, 또는 주어진 시스템을 추적하고 각각의 memory reference의 주소를 기록할 수 있다. 후자의 경우 매우 큰 데이터가 생성된다. (on the order of 1 million addresses per second). 이 숫자를 줄이기 위해 우리는 2개의 fact를 사용한다.
+
 첫째, 주어진 page size에서의 page number를 고려해야 한다.
 둘째, page p에 대한 reference가 있다면, 바로 다음에 page p에 대한 어떤 reference가 오더라도 page fault는 일어나지 않는다.
 
-Obviously, as the number of frames available increases, the number
-of page faults decreases
+(예시. page당 100bytes인 경우에서의 reference string sequence.)
+
+Obviously, as the number of frames available increases, the number of page faults decreases.
+예시로 보면 3개 이상 available frame이 있었으면, 초기 세팅할 때만 해서 fault는 3번만 일어났을 것이다.
 
 ### 9.4.2 FIFO Page Replacement
 
@@ -262,7 +270,7 @@ Notice that we may have to scan the circular queue several times before we find 
 
 page replacement에 사용할 수 있는 다른 알고리즘들도 많다. 예를 들어 우리는 reference의 수의 counter를 페이지별로 가지면서 아래 두가지 방법을 개발할 수 있다.
 
- 1. **Least Freqently Used**(**LFU**)는 가장 카운트가 적은 page가 교체 대상이 될 것이다. 현재 사용되고 있는 page는 reference count가 클 수밖에 없기 때문이다. 그러나 알려진 문제로 초반에만 많이 쓰이고 뒤에서 쓰이지 않는 경우에도 메모리에 남게 되는 점이 있다. 하나의 해결책으로 regular interval마다 카운트 bit를 오른쪽으로 하나씩 이동시키는 방법이 있다. 평균 사용 횟수가 지수적으로 줄게 될 것이다.
+1. **Least Freqently Used**(**LFU**)는 가장 카운트가 적은 page가 교체 대상이 될 것이다. 현재 사용되고 있는 page는 reference count가 클 수밖에 없기 때문이다. 그러나 알려진 문제로 초반에만 많이 쓰이고 뒤에서 쓰이지 않는 경우에도 메모리에 남게 되는 점이 있다. 하나의 해결책으로 regular interval마다 카운트 bit를 오른쪽으로 하나씩 이동시키는 방법이 있다. 평균 사용 횟수가 지수적으로 줄게 될 것이다.
 
 2. **Most Frequenntly Used**(**MFU**) page-replacement algorithm is based on the argument that the page with the smallest count was probably just brought in and has yet to be used. //걍 반대
 
@@ -284,48 +292,169 @@ Unix system의 몇 버전들은 이 메서드와 second-chance algorithm을 함�
 
 In certain cases, OS가 buffering을 전혀 없다면 OS의 virtual memory를 통한 application의 data 접근은 성능이 안 좋다. 전형적인 예제로 database가 있는데, 그것은 직접 memory management와 I/O buffering을 제공한다. 이런 application들은 일반 목적의 OS 알고리즘보다 스스로 메모리와 디스크 사용을 하는 것이 더 낫다는 것을 이해하고 있다. 그러나 만약 OS가 I/O buffering을 하고 application도 하고 있다면, I/O 사용을 위해 드는 메모리가 두배가 된다.
 
-다른 예시로, data warehouses 빈번하게 requential disk read, 후에 computations and writes가 일어난다. LRU 알고리즘은 old page를 지우고 새로운 것들을 보존하고 있을 것이다. 그러나 application을 새로운 것보다는 older page을 읽으려고 할 것이다.(다시 sequential reads가 발생). 여기서는 MFU가 LRU보다 효과적일 것이다.
+다른 예시로, data warehouses 빈번하게 massive sequential disk read, 후에 computations and writes가 일어난다. LRU 알고리즘은 old page를 지우고 새로운 것들을 보존하고 있을 것이다. 그러나 application을 새로운 것보다는 older page을 읽으려고 할 것이다.(다시 sequential reads가 발생). 여기서는 MFU가 LRU보다 효과적일 것이다.
 
-이런 문제들로 인해 몇 OS는 어떤 파일시스템의 구조도 갖지 않은 채 a arge sequential array of logical blocks으로 disk partition을 쓰는 기능을 사용한 special program을 제공한다. This array is sometimes called the **raw disk**, and I/O to this array is termed raw I/O. 특정 application인 그들 특정 목적으로 storage service를 구현함으로써 더 효과적일 수 있겠지만, 대부분의 application을 일반적인 file system에서의 성능이 더 낫다는 걸 명심(?)해라.
+이런 문제들로 인해 몇 OS는 어떤 파일시스템의 구조도 갖지 않은 채 a large sequential array of logical blocks으로 disk partition을 쓰는 기능을 사용한 special program을 제공한다. This array is sometimes called the **raw disk**, and I/O to this array is termed raw I/O. 특정 application인 그들 특정 목적으로 storage service를 구현함으로써 더 효과적일 수 있겠지만, 대부분의 application을 일반적인 file system에서의 성능이 더 낫다는 걸 명심(?)해라.
 
 ## 9.5 Allocation of Frames
 
 allocation issue로 넘어가자. 다양한 프로세스들 중에서 fixed amount의 free memory를 어떻게 할당할 수 있을까? 만약 93 free frames과 two processes를 가졌다면 각 프로세스들은 frame을 얼마나 가질까?
 
-가장 단순한 케이스는 single-user system이다. 메모리 128KB에 1KB pages들로 이루어진 single-user system을 떠올려보자. 이 시스템은 128 frames를 가지고 있다. OS가 35KB를 쓰 93 frames를 유저 프로세스를 위해 남겨놨다. 순수하게 demand paging할 때 93 frames은 free-frame list에 올라와 있을 것이다. user process가 수행하기 시작할때 순차적인 page faults가 발생할 것이다. 첫 93 page faults를 free-frame list에 가져오면 된다. free frame list를 다 쓰면, page-replacement algorithm이 93개의 in-memory page 중에서 하나를 선택해서 94번째와 교체할 것이다. 그리고 프로세스가 죽으면 93 frames은 다시 free-frame list로 돌아간다.
+가장 단순한 케이스는 single-user system이다. 메모리 128KB에 1KB pages들로 이루어진 single-user system을 떠올려보자. 이 시스템은 128 frames를 가지고 있다. OS가 35KB를 쓰고, 93 frames를 유저 프로세스를 위해 남겨놨다. 순수하게 demand paging할 때 93 frames은 free-frame list에 올라와 있을 것이다. user process가 수행하기 시작할때 순차적인 page faults가 발생할 것이다. 첫 93 page faults를 free-frame list에 가져오면 된다. free frame list를 다 쓰면, page-replacement algorithm이 93개의 in-memory page 중에서 하나를 선택해서 94번째와 교체할 것이다. 그리고 프로세스가 죽으면 93 frames은 다시 free-frame list로 돌아간다.
 
 이 simple strategy에 여러 variations이 존재한다.
 
 ### 9.5.1 Minimum Number of Frames
 
-Our strategies for the allocation of frames are constrained in various ways. 우리는 page sharing이 있지 않은 이상엔 가용가능한 frame 수의 총합보다 만ㅇ흔 양을 할당할 수 없다. 우리는 또한 적어도 최소 frame number만큼은 할당해야 한다. 후자의 요구사항에 맞춰 자세히 들여다보자.
+Our strategies for the allocation of frames are constrained in various ways. 우리는 page sharing이 있지 않은 이상엔 가용가능한 frame 수의 총합보다 많은 양을 할당할 수 없다. 우리는 또한 적어도 최소 frame number만큼은 할당해야 한다. 후자의 요구사항에 맞춰 자세히 들여다보자.
 
 적어도 최소 number of frames를 할당하는 첫번째 이유는 성능이다. 명백하게도 각각의 프로세스에 할당된 frame의 수가 감소하면, page-fault rate는 증가하고 process execution을 느려진다. 그리고 instruction을 수행하기 전에 page fault가 발생하면, 그 instruction는 재시작해야만 한다. 결과적으로 어떤 single instruction이라도 관련된 page들을 담고 있으려면 충분한 frame을 갖고 있어야 한다.
 
-For example, consider a machine in which all memory-reference instructions may reference only one memory address.
+For example, consider a machine in which all memory-reference instructions may reference only one memory address. In this case, we need at least one frame for the instruction and one frame for the memory reference. 게다가 one-level indirect addressing이 허락된다면, paging 하는 데에 프로세스당 적어도 3개의 frame이 필요하다. 2 frame만 있으면 어떨지 생각해봐라.
+
+frame 최소수는 컴퓨터 아키텍처에 의해 결정된다. 예를 들어, PDP-11에 대한 이동 명령은 일부 어드레싱 모드에 대해 하나 이상의 단어를 포함하므로, 명령 자체가 두 페이지에 걸칠 수 있다. 두 개의 피연산자(operand)가 indirect references일 수도 있다, for a total of six frames.
+
+Theoretically, a simple load instruction could reference an indirect address that could reference an indirect address (on another page) , ...
+To overcome this difficulty, we must place a limit on the levels of indirection (for example, limit an instruction to at most 16 levels of indirection).
+
+Whereas the minimum number of frames per process is defined by the architecture, the maximum number is defined by the amount of available physical memory. In between, we are still left with significant choice in frame allocation.
 
 ### 9.5.2 Allocation Algorithms
+
+m 개의 frame을 n개의 프로세스로 나누는 가장 간단한 방법은 모두에게 같은 양을 주는 것이다. (m/n frames) This scheme is called **equal allocation**.
+
+An alternative is to recognize that various processes will need differing amounts of memory. we can use **proportional allocation**, in which we allocate available memory to each process according to its size.
+
+그런데 알아야 될 것이이 euqal이나 proportional allocataion이나 process의 high-priority에 대한 차이가 없다. 하나의 솔루션은 size 뿐 아니라 priority까지 고려하여 combination으로 ratio of frames를 정하는 것이다.
+
 ### 9.5.3 Global versus Local Allocation
+
+With multiple processes competing for frames, we can calssify page-replcaement algorithms into two broad catergories: **global replacement** and **local replacement**. global은 frame을 다른 프로세스에서도 가져올 수 있고, Local은 its own set of allocated frames에서 가져온다. 그래서 global은 high-priority process의 frame allocation을 높이는 데에는 좋다. 그런데 문제가 프로세스가 자기 자신의 page-fault rate를 제어할 수 없다는 점이 있다. 그래서 같은 프로세스라도 외부 상황에 의해 처리 시간이 많이 달라질 수 있다.
+
+Local replacement might hinder a process, however, by not making available to it other, less used pages of memory. Thus, global replacement generally results in greater system throughput and is therefore the more commonly used method.
+
 ### 9.5.4 Non-Uniform Memory Access
 
+Thus far in our coverage of virtual memory, we have assumed that all main memory is created equal—or at least that it is accessed equally. On many computer systems, that is not the case.
+
+As you might expect, the CPUs on a particular board can access the memoryon that board with
+less delay than they can access memory on other boards in the system. Systems in which memory access times vary significantly are known collectively as non-uniform memory access (NUMA) systems, and without exception, they are slower than systems in which memory and CPUs are located on the same motherboard.
+
+그래서 page frame을 어디에 저장시켜서 관리하느냐가 performance에 큰 영향을 끼친다. scheduling system에도 변화가 비슷하게 필요하다. 그래서 frame와 CPU가 최대한 가깝게 하는 것이 목표다.
+process를 스케줄할때 이전 CPU를 그대로 사용하도록 하고 memory-management system은 frame을 process와 가깝게 할당하려는 거로로 cache hit을 올리고 memory access time을 줄일 수 있다.
+
+In fact, there is a hierarchy of **lgroups** based on the amount of latency between the groups. Solaris tries to schedule all threads of a process and allocate all memory of a process within an lgroup.
+
 ## 9.6 Thrashing
+
+low-priority process에 할당된 frame 수가 컴퓨터 아키텍처의 요구 minimum number보다 낮아지면, 해당 프로세스의 수행을 미뤄야한다. 그리고 page out 및 할당된 frame을 전부 해제시킨다. This provision introduces a swap-in, swap-out level of intermediate CPU scheduling.
+
+충반한 frame을 갖지 못한 프로세스를 보자. active use의 page를 지원할만큼의 frame을 갖지 못한 프로세스가 있다면, 빠르게 pgae-fault가 반복되어 일어날 것이다. This high paging activity is called **thrashing**. A process is thrashing if it is spending more time paging than executing.
+
 ### 9.6.1 Cause of Thrashing
+
+Thrashing은 심각한 performance problems을 일으킨다.
+operating system이 CPU utilization을 모니터한다. CPU utilization이 너무 낮아지면 우린 새로운 프로세스를 통해서 degree of multiprogramming을 증가시킬 것이다. global page-replacement algorithm이 사용된다. 프로세스가 새로운 상태에 들어오면서 더 많은 frame이 필요하다고 하면 faulting이 시작되면서 다른 프로세스들로부터 frame을 가져온다. 그러면서 그 프로세들은 또 fault가 될 것이다. 이런 faulting proceses는 반드시 swap pages in and out을 위한 pagin device를 사용해야 한다. 프로세스들은 paging device들을 기다리게 되면서 CPU utilization이 감소한다.
+
+No work is getting done, because the processes are spending all their time paging.
+
+We can limit the effects of thrashing by using a **local replacement algorithm** (or **priority replacement algorithm**). local replacement에서는 하나의 프로세스가 thrashing을 시작하더라도 다른 프로세스의 frame을 가져올 수 없으므로 이후의 thrash를 발생시키지 않는다. 그러나 이건 해결책이 아니다.
+
+To prevent thrashing, we must provide a process with as many frames as it needs. But how do we know how many frames it “needs”? There are several techniques. The working-set strategy (Section 9.6.2) starts by looking at how many frames a process is actually using. This approach defines the **locality model** of process execution.
+
+.
+
 ### 9.6.2 Working-Set Model
+
+As mentioned, the **working-set model** is based on the assumption of locality. This model uses a parameter, ㅅ, to define **the working-set window**. The idea is to examine the most recent ㅅ page references. The set of pages in the most recent ㅅ page references is the **working set** (Figure 9.20).
+
+The most important property of the working set, then, is its size. If we compute the working-set size, WSSi , for each process in the system, we can then consider that
+D = (Sigma) WSSi ,
+where Dis the total demand for frames
+
+This working-set strategy prevents thrashing while keeping the degree of multiprogramming as high as possible.
+
 ### 9.6.3 Page-Fault Frequency
+
+The working-set model is successful, and knowledge of the working set can be useful for prepaging (Section 9.9.1), but it seems a clumsy way to control thrashing. A strategy that uses the **page-fault frequency** (PFF) takes a more direct approach.
+
+The specific problem is how to prevent thrashing. Thrashing has a high
+page-fault rate. Thus, we want to control the page-fault rate. When it is too
+high,weknow that the process needs more frames. Conversely, if the page-fault
+rate is too low, then the process may have too many frames
+
 ### 9.6.4 Concluding Remarks
 
+Practically speaking, thrashing and the resulting swapping have a disagreeably large impact on performance. The current best practice in implementing a computer facility is to include enough physical memory, whenever possible, to avoid thrashing and swapping.
+From smartphones through mainframes, providing enough memory to keep all working sets in memory concurrently, except under extreme conditions, gives the best user experience.
+
 ## 9.7 Memory-Mapped Files
+
+Consider a sequential read of a file on disk using the standard system calls
+
+### 9.7.1 Basic Mechanism
+
+Memory mapping a file is accomplished by mapping a disk block to a page (or pages) in memory. 
+Subsequent reads and writes to the file are handled as routine memory accesses.
+
+Note that writes to the file mapped in memory are not necessarily immediate (synchronous) writes to the file on disk. Some systems may choose to update the physical file when the operating system periodically checks whether the page in memory has been modified.When the file is closed, all the memory-mapped data are written back to disk and removed from the virtual memory of the process.
+
+Solaris still memory-maps the file; however, the file is mapped to the kernel address space. Regardless of how the file is opened, then, Solaris treats all file I/O as memory-mapped, allowing file access to take place via the efficient memory subsystem.
+
+### 9.7.2 Shared Memory In the Windows API
+
 ...
+
+### 9.7.3 Memory-Mapped I/O
+
+To allow more convenient access to I/O devices, many computer architectures provide **memory-mapped I/O**.
 
 ## 9.8 Allocating Kernel Memory
-...
+
+유저모드로 수행 중인 프로세스가 추가 메모리를 요구할 때, kernel에 의해 관리되던 free page frames 목록 중에서 pages가 할당된다.
+
+이 목록은 일반적으로 9.4 절에서 설명한 것과 같은 페이지 교체 알고리즘을 사용하여 채워지며 앞에서 설명한 것처럼 physical memory에 흩어져있는 free page가 포함되어있을 가능성이 높다. 만약 유저 프로세스가 single byte of memory를 요청했다면, page frame을 하나 통째로 할당받을 것이고, 그 결과 internal fragmentation이 발생한다.
+
+Kernel memory is often allocated from a free-memory pool different from the list used to satisfy ordinary user-mode processes. There are two primary reasons for this:
+
+1. 커널이 요청하는 메모리는 사이즈가 다양하다. 어떤 것들은 페이지하나 사이즈보다 작다. 따라서 커널은 메모리를 보수적으로 사용해야하며 조각화로 인한 낭비를 최소화해야 한다. This is especially important because many operating systems do not subject kernel code or data to the paging system
+
+2. Pages allocated to user-mode processes do not necessarily have to be in contiguous physical memory. However, certain hardware devices interact directly with physical memory—without the benefit of a virtual memory interface—and consequently may require memory residing in physically contiguous pages.
+
+뒤 섹션에서 kernel process에 할당되는 free memory managing strategies 2개를 하나씩 살펴볼 것이다. : "buddy system" and slab allocation.
+
+### 9.8.1 Buddy System
+
+### 9.8.2 Slab Allocation
 
 ## 9.9 Other Considerations
-...
+
+### 9.9.1 Prepaging
+
+### 9.9.2 Page Size
+
+### 9.9.3 TLB Reach
+
+### 9.9.4 Inverted Page Tables
+
+### 9.9.5 Program Structure
+
+### 9.9.6 I/O Interlock and Page Locking
 
 ## 9.10 Operating-System Examples
+
 ...
 
 ## 9.11 Summary
+
 ...
+
+In addition to a page-replacement algorithm, a frame-allocation policy is needed. Allocation can be fixed, suggesting local page replacement, or dynamic, suggesting global replacement. The working-set model assumes that processes execute in localities. The working set is the set of pages in the current locality. Accordingly, each process should be allocated enough frames for its current working set. If a process does not have enough memory for its working
+set, it will thrash. Providing enough frames to each process to avoid thrashing may require process swapping and scheduling.
+
+Most operating systems provide features for memory mapping files, thus allowing file I/O to be treated as routine memory access. The Win32 API implements shared memory through memory mapping of files.
+
+Kernel processes typically require memory to be allocated using pages that are physically contiguous. The buddy system allocates memory to kernel processes in units sized according to a power of 2, which often results in fragmentation. Slab allocators assign kernel data structures to caches associated with slabs, which are made up of one or more physically contiguous pages. With slab allocation, no memory is wasted due to fragmentation, and memory requests can be satisfied quickly.
+
+In addition to requiring us to solve the major problems of page replacement and frame allocation, the proper design of a paging system requires that we consider prepaging, page size, TLB reach, inverted page tables, program structure, I/O interlock and page locking, and other issues.
 
