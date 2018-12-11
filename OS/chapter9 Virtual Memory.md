@@ -329,7 +329,7 @@ An alternative is to recognize that various processes will need differing amount
 
 ### 9.5.3 Global versus Local Allocation
 
-With multiple processes competing for frames, we can calssify page-replcaement algorithms into two broad catergories: **global replacement** and **local replacement**. global은 frame을 다른 프로세스에서도 가져올 수 있고, Local은 its own set of allocated frames에서 가져온다. 그래서 global은 high-priority process의 frame allocation을 높이는 데에는 좋다. 그런데 문제가 프로세스가 자기 자신의 page-fault rate를 제어할 수 없다는 점이 있다. 그래서 같은 프로세스라도 외부 상황에 의해 처리 시간이 많이 달라질 수 있다.
+With multiple processes competing for frames, we can calssify page-replacement algorithms into two broad catergories: **global replacement** and **local replacement**. global은 frame을 다른 프로세스에서도 가져올 수 있고, Local은 its own set of allocated frames에서 가져온다. 그래서 global은 high-priority process의 frame allocation을 높이는 데에는 좋다. 그런데 문제가 프로세스가 자기 자신의 page-fault rate를 제어할 수 없다는 점이 있다. 그래서 같은 프로세스라도 외부 상황에 의해 처리 시간이 많이 달라질 수 있다.
 
 Local replacement might hinder a process, however, by not making available to it other, less used pages of memory. Thus, global replacement generally results in greater system throughput and is therefore the more commonly used method.
 
@@ -378,12 +378,11 @@ This working-set strategy prevents thrashing while keeping the degree of multipr
 
 The working-set model is successful, and knowledge of the working set can be useful for prepaging (Section 9.9.1), but it seems a clumsy way to control thrashing. A strategy that uses the **page-fault frequency** (PFF) takes a more direct approach.
 
-The specific problem is how to prevent thrashing. Thrashing has a high
-page-fault rate. Thus, we want to control the page-fault rate. When it is too
-high,weknow that the process needs more frames. Conversely, if the page-fault
-rate is too low, then the process may have too many frames
+The specific problem is how to prevent thrashing. Thrashing has a high page-fault rate. Thus, we want to control the page-fault rate. When it is too high, we know that the process needs more frames. Conversely, if the page-fault rate is too low, then the process may have too many frames
 
 ### 9.6.4 Concluding Remarks
+
+//결국은 메모리를 충분히 줘야 해결됩니다.
 
 Practically speaking, thrashing and the resulting swapping have a disagreeably large impact on performance. The current best practice in implementing a computer facility is to include enough physical memory, whenever possible, to avoid thrashing and swapping.
 From smartphones through mainframes, providing enough memory to keep all working sets in memory concurrently, except under extreme conditions, gives the best user experience.
@@ -393,6 +392,8 @@ From smartphones through mainframes, providing enough memory to keep all working
 Consider a sequential read of a file on disk using the standard system calls
 
 ### 9.7.1 Basic Mechanism
+
+//메모리에서의 파일에 대한 쓰기가 디스크에 바로 동기화되는 것은 아니다.
 
 Memory mapping a file is accomplished by mapping a disk block to a page (or pages) in memory. 
 Subsequent reads and writes to the file are handled as routine memory accesses.
@@ -425,7 +426,21 @@ Kernel memory is often allocated from a free-memory pool different from the list
 
 ### 9.8.1 Buddy System
 
+//물리적으로 인접한 segment에 할당함. 2의 제곱으로 크기로 잘라서 할당함. 인접한 버디를 빨리 결합해서 더 큰 세그먼트를 형성할 수 있는 장점이 있다. 2의 제곱으로 생성하기 때문에, 내부에 단편화의 가능성이 높아진다. (ex. 33을 요청하면 64를 할당하게됨)
+
 ### 9.8.2 Slab Allocation
+
+//캐시를 사용해서 커널 객체를 저장하는 방식. (Figure 9.27) 
+
+The slab allocator provides two main benefits:
+1. No memory is wasted due to fragmentation. Fragmentation is not an issue because each unique kernel data structure has an associated cache, and each cache is made up of one or more slabs that are divided into chunks the size of the objects being represented. Thus, when the kernel requests memory for an object, the slab allocator returns the exact amount of memory required to represent the object.
+
+2. Memory requests can be satisfied quickly. The slab allocation scheme is thus particularly effective for managing memory when objects are frequently allocated and deallocated, as is often the case with requests from the kernel. The act of allocating—and releasing—memory can be a time-consuming process. However, objects are created in advance and thus can be quickly allocated from the cache. Furthermore, when the kernel has finished with an object and releases it, it is marked as free and returned to its cache, thus making it immediately available for subsequent requests from the kernel.
+
+SLOB : 이건 3가지로 오브젝트를 분류해서 사용 : small, medium, large
+
+SLUB : Slab보다 메타 크기를 줄여서 효율적으로 사용함.
+
 
 ## 9.9 Other Considerations
 
